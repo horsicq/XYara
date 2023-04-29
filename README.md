@@ -1,1 +1,1 @@
-# XYara
+# QYara
