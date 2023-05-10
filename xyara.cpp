@@ -71,10 +71,10 @@ bool XYara::addFile(QString sFileName)
 
     delete [] pFileNameW;
 
-    if (g_pRules) {
-        yr_rules_destroy(g_pRules);
-        g_pRules = nullptr;
-    }
+//    if (g_pRules) {
+//        yr_rules_destroy(g_pRules);
+//        g_pRules = nullptr;
+//    }
 
     return bResult;
 }
