@@ -22,6 +22,8 @@
 
 XYara::XYara(QObject *pParent) : QObject(pParent)
 {
+    g_pdStructEmpty = XBinary::createPdStruct();
+    g_pPdStruct = &g_pdStructEmpty;
     g_pYrCompiler = nullptr;
     g_pRules = nullptr;
     yr_compiler_create(&g_pYrCompiler);
@@ -48,7 +50,7 @@ void XYara::finalize()
     yr_finalize();
 }
 
-bool XYara::addFile(QString sFileName)
+bool XYara::addRulesFile(QString sFileName)
 {
     bool bResult = false;
 
@@ -90,6 +92,32 @@ bool XYara::scanFile(QString sFileName)
     return (nResult == 0);
 }
 
+void XYara::setPdStruct(XBinary::PDSTRUCT *pPdStruct)
+{
+    g_pPdStruct = pPdStruct;
+}
+
+void XYara::setData(QString sFileName)
+{
+    g_sFileName = sFileName;
+}
+
+void XYara::process()
+{
+    QElapsedTimer scanTimer;
+    scanTimer.start();
+
+    int nFreeIndex = XBinary::getFreeIndex(g_pPdStruct);
+    XBinary::setPdStructInit(g_pPdStruct, nFreeIndex, 0);
+
+    qDebug("void XYara::process()");
+    scanFile(g_sFileName);
+
+    XBinary::setPdStructFinished(g_pPdStruct, nFreeIndex);
+
+    emit completed(scanTimer.elapsed());
+}
+
 void XYara::_callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data)
 {
 //    #define YARA_ERROR_LEVEL_ERROR   0
@@ -99,6 +127,11 @@ void XYara::_callbackCheckRules(int error_level, const char *file_name, int line
 
 int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data)
 {
+    int nResult = CALLBACK_CONTINUE;
+
+    char *psz = (char *)message_data;
+
+    XYara *_pXYara = (XYara *)user_data;
 //    CALLBACK_MSG_RULE_MATCHING
 //    CALLBACK_MSG_RULE_NOT_MATCHING
 //    CALLBACK_MSG_SCAN_FINISHED
@@ -116,11 +149,15 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         qDebug("CALLBACK_MSG_TOO_MANY_MATCHES");
     }
 
+    if (_pXYara->g_pPdStruct->bIsStop) {
+        nResult = CALLBACK_ABORT;
+    }
+
     // YR_OBJECT_STRUCTURE
 
     // TODO Check pdstruct
     qDebug("_callbackScan: %d", message);
 
-    return CALLBACK_CONTINUE;
+    return nResult;
 }
 

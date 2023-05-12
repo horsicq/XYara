@@ -14,7 +14,7 @@ SOURCES += \
     include($$PWD/3rdparty/yara/yara.pri)
 }
 
-#!contains(XCONFIG, qopenssl) {
-#    XCONFIG += qopenssl
-#    include($$PWD/../QOpenSSL/qopenssl.pri)
-#}
+!contains(XCONFIG, xbinary) {
+    XCONFIG += xbinary
+    include($$PWD/../Formats/xbinary.pri)
+}

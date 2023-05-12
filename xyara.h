@@ -21,10 +21,8 @@
 #ifndef XYARA_H
 #define XYARA_H
 
-#include <QObject>
-#include <QFile>
-#include <QFileInfo>
 #include "yara.h"
+#include "xbinary.h"
 
 class XYara : public QObject
 {
@@ -36,15 +34,28 @@ public:
     static void initialize();
     static void finalize();
 
-    bool addFile(QString sFileName);
+    bool addRulesFile(QString sFileName);
     bool scanFile(QString sFileName);
+    void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
+    void setData(QString sFileName);
+
+public slots:
+    void process();
+
 private:
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
+
 signals:
+    void errorMessage(QString sErrorMessage);
+    void completed(qint64 nElapsed);
+
 private:
     YR_RULES *g_pRules;
     YR_COMPILER *g_pYrCompiler;
+    XBinary::PDSTRUCT *g_pPdStruct;
+    XBinary::PDSTRUCT g_pdStructEmpty;
+    QString g_sFileName;
 };
 
 #endif // XYARA_H
