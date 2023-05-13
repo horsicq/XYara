@@ -48,6 +48,8 @@ private:
 
 signals:
     void errorMessage(QString sErrorMessage);
+    void warningMessage(QString sWarningMessage);
+    void infoMessage(QString sInfoMessage);
     void completed(qint64 nElapsed);
 
 private:

@@ -120,6 +120,16 @@ void XYara::process()
 
 void XYara::_callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data)
 {
+    Q_UNUSED(rule)
+
+    XYara *_pXYara = (XYara *)user_data;
+    QString sString = QString("%1: [%2] %3").arg(QString(file_name), QString::number(line_number), QString(message));
+
+    if (error_level == YARA_ERROR_LEVEL_ERROR) {
+        emit _pXYara->errorMessage(sString);
+    } else if (error_level == YARA_ERROR_LEVEL_WARNING) {
+        emit _pXYara->warningMessage(sString);
+    }
 //    #define YARA_ERROR_LEVEL_ERROR   0
 //    #define YARA_ERROR_LEVEL_WARNING 1
     qDebug("_callbackCheckRules");
@@ -128,8 +138,6 @@ void XYara::_callbackCheckRules(int error_level, const char *file_name, int line
 int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data)
 {
     int nResult = CALLBACK_CONTINUE;
-
-    char *psz = (char *)message_data;
 
     XYara *_pXYara = (XYara *)user_data;
 //    CALLBACK_MSG_RULE_MATCHING
@@ -142,11 +150,24 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
     if (message == CALLBACK_MSG_RULE_MATCHING) {
         YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
         qDebug("CALLBACK_MSG_RULE_MATCHING");
-
+    } else if (message == CALLBACK_MSG_RULE_NOT_MATCHING) {
+        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
     } else if (message == CALLBACK_MSG_TOO_MANY_MATCHES) {
         YR_STRING *pYrString = (YR_STRING *)message_data;
         // TODO warning
         qDebug("CALLBACK_MSG_TOO_MANY_MATCHES");
+    } else if (message == CALLBACK_MSG_IMPORT_MODULE) {
+        YR_MODULE_IMPORT *pModuleImport = (YR_MODULE_IMPORT *)message_data;
+        qDebug("Module: %s", pModuleImport->module_name);
+    } else if (message == CALLBACK_MSG_MODULE_IMPORTED) {
+        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+        qDebug("Module: %s", pYrStruncture->identifier);
+    } else if (message == CALLBACK_MSG_CONSOLE_LOG) {
+        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+        qDebug("Module: %s", pYrStruncture->identifier);
+    } else if (message == CALLBACK_MSG_SCAN_FINISHED) {
+        qDebug("CALLBACK_MSG_SCAN_FINISHED");
     }
 
     if (_pXYara->g_pPdStruct->bIsStop) {
