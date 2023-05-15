@@ -28,16 +28,42 @@ class XYara : public QObject
 {
     Q_OBJECT
 public:
+    struct SCAN_STRUCT {
+        QString sRule;
+        QString sRulesFile;
+        // TODO details
+    };
+
+    struct ERROR_RECORD {
+        QString sRulesFile;
+        QString sErrorString;
+    };
+
+    struct DEBUG_RECORD {
+        QString sRule;
+        QString sRulesFile;
+        qint64 nElapsedTime;
+    };
+
+    struct SCAN_RESULT {
+        qint64 nScanTime;
+        QString sFileName;
+        QList<SCAN_STRUCT> listRecords;
+        QList<ERROR_RECORD> listErrors;
+        QList<DEBUG_RECORD> listDebugRecords;
+    };
+
     explicit XYara(QObject *pParent = nullptr);
     ~XYara();
 
     static void initialize();
     static void finalize();
 
-    bool addRulesFile(QString sFileName);
-    bool scanFile(QString sFileName);
+    bool addRulesFile(const QString &sFileName);
+    SCAN_RESULT scanFile(const QString &sFileName);
     void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
-    void setData(QString sFileName);
+    void setData(const QString &sFileName);
+    SCAN_RESULT getScanResult();
 
 public slots:
     void process();
@@ -58,6 +84,7 @@ private:
     XBinary::PDSTRUCT *g_pPdStruct;
     XBinary::PDSTRUCT g_pdStructEmpty;
     QString g_sFileName;
+    SCAN_RESULT g_scanResult;
 };
 
 #endif // XYARA_H

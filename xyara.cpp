@@ -26,6 +26,7 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
     g_pPdStruct = &g_pdStructEmpty;
     g_pYrCompiler = nullptr;
     g_pRules = nullptr;
+    g_scanResult = {};
     yr_compiler_create(&g_pYrCompiler);
     yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 }
@@ -50,7 +51,7 @@ void XYara::finalize()
     yr_finalize();
 }
 
-bool XYara::addRulesFile(QString sFileName)
+bool XYara::addRulesFile(const QString &sFileName)
 {
     bool bResult = false;
 
@@ -81,15 +82,24 @@ bool XYara::addRulesFile(QString sFileName)
     return bResult;
 }
 
-bool XYara::scanFile(QString sFileName)
+XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
 {
+    QElapsedTimer scanTimer;
+    scanTimer.start();
+
     if (!g_pRules) {
         yr_compiler_get_rules(g_pYrCompiler, &g_pRules);
     }
 
+    g_scanResult = {};
+
+    // TODO flags
     int nResult = yr_rules_scan_file(g_pRules, sFileName.toLatin1().data(), 0, &XYara::_callbackScan, this, 0);
 
-    return (nResult == 0);
+    g_scanResult.sFileName = sFileName;
+    g_scanResult.nScanTime =  scanTimer.elapsed();
+
+    return g_scanResult;
 }
 
 void XYara::setPdStruct(XBinary::PDSTRUCT *pPdStruct)
@@ -97,9 +107,14 @@ void XYara::setPdStruct(XBinary::PDSTRUCT *pPdStruct)
     g_pPdStruct = pPdStruct;
 }
 
-void XYara::setData(QString sFileName)
+void XYara::setData(const QString &sFileName)
 {
     g_sFileName = sFileName;
+}
+
+XYara::SCAN_RESULT XYara::getScanResult()
+{
+    return g_scanResult;
 }
 
 void XYara::process()
@@ -149,25 +164,28 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
 //    CALLBACK_MSG_CONSOLE_LOG
     if (message == CALLBACK_MSG_RULE_MATCHING) {
         YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-        qDebug("CALLBACK_MSG_RULE_MATCHING");
+        SCAN_STRUCT scanStruct = {};
+        scanStruct.sRule = pYrStruncture->identifier;
+        _pXYara->g_scanResult.listRecords.append(scanStruct);
     } else if (message == CALLBACK_MSG_RULE_NOT_MATCHING) {
-        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
+//        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+//        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
     } else if (message == CALLBACK_MSG_TOO_MANY_MATCHES) {
         YR_STRING *pYrString = (YR_STRING *)message_data;
         // TODO warning
-        qDebug("CALLBACK_MSG_TOO_MANY_MATCHES");
+//        qDebug("CALLBACK_MSG_TOO_MANY_MATCHES");
+        emit _pXYara->warningMessage("CALLBACK_MSG_TOO_MANY_MATCHES");
     } else if (message == CALLBACK_MSG_IMPORT_MODULE) {
-        YR_MODULE_IMPORT *pModuleImport = (YR_MODULE_IMPORT *)message_data;
-        qDebug("Module: %s", pModuleImport->module_name);
+//        YR_MODULE_IMPORT *pModuleImport = (YR_MODULE_IMPORT *)message_data;
+//        qDebug("Module: %s", pModuleImport->module_name);
     } else if (message == CALLBACK_MSG_MODULE_IMPORTED) {
-        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-        qDebug("Module: %s", pYrStruncture->identifier);
+//        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+//        qDebug("Module: %s", pYrStruncture->identifier);
     } else if (message == CALLBACK_MSG_CONSOLE_LOG) {
-        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-        qDebug("Module: %s", pYrStruncture->identifier);
+//        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+//        qDebug("Module: %s", pYrStruncture->identifier);
     } else if (message == CALLBACK_MSG_SCAN_FINISHED) {
-        qDebug("CALLBACK_MSG_SCAN_FINISHED");
+        //qDebug("CALLBACK_MSG_SCAN_FINISHED");
     }
 
     if (_pXYara->g_pPdStruct->bIsStop) {
