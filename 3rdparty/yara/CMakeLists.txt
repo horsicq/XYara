@@ -6,6 +6,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(GNUInstallDirs)
+
 include_directories(${PROJECT_SOURCE_DIR}/src/)
 include_directories(${PROJECT_SOURCE_DIR}/src/include/)
 
@@ -90,13 +92,13 @@ if(LINUX)
   )
 endif()
 
-if(FreeBSD)
+if(FREEBSD)
   add_library(yara STATIC
   ${PROJECT_SOURCE_DIR}/src/proc/freebsd.c
   )
 endif()
 
-if(OpenBSD)
+if(OPENBSD)
   add_library(yara STATIC
   ${PROJECT_SOURCE_DIR}/src/proc/openbsd.c
   )
