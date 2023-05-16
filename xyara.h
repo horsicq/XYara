@@ -28,10 +28,17 @@ class XYara : public QObject
 {
     Q_OBJECT
 public:
+    struct SCAN_MATCH {
+        QString sName;
+        qint64 nOffset;
+        qint64 nSize;
+    };
+
     struct SCAN_STRUCT {
+        QString sUUID;
         QString sRule;
         QString sRulesFile;
-        // TODO details
+        QList<SCAN_MATCH> listScanMatches;
     };
 
     struct ERROR_RECORD {
