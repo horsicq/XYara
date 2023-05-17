@@ -24,8 +24,7 @@
 #include "yara.h"
 #include "xbinary.h"
 
-class XYara : public QObject
-{
+class XYara : public QObject {
     Q_OBJECT
 public:
     struct SCAN_MATCH {
@@ -96,4 +95,4 @@ private:
     SCAN_RESULT g_scanResult;
 };
 
-#endif // XYARA_H
+#endif  // XYARA_H

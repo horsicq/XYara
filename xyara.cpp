@@ -62,23 +62,23 @@ bool XYara::_addRulesFile(const QString &sFileName)
     sFileName.toWCharArray(pFileNameW);
     pFileNameW[sFileName.length()] = 0;
 
-    pFile = _wfopen(pFileNameW , L"r");
-    if (pFile != NULL)  {
+    pFile = _wfopen(pFileNameW, L"r");
+    if (pFile != NULL) {
         int nResult = yr_compiler_add_file(g_pYrCompiler, pFile, QFileInfo(sFileName).baseName().toLatin1().data(), sFileName.toLatin1().data());
 
         if (nResult == 0) {
             bResult = true;
         }
 
-        fclose (pFile);
+        fclose(pFile);
     }
 
-    delete [] pFileNameW;
+    delete[] pFileNameW;
 
-//    if (g_pRules) {
-//        yr_rules_destroy(g_pRules);
-//        g_pRules = nullptr;
-//    }
+    //    if (g_pRules) {
+    //        yr_rules_destroy(g_pRules);
+    //        g_pRules = nullptr;
+    //    }
 
     return bResult;
 }
@@ -98,7 +98,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     int nResult = yr_rules_scan_file(g_pRules, sFileName.toLatin1().data(), 0, &XYara::_callbackScan, this, 0);
 
     g_scanResult.sFileName = sFileName;
-    g_scanResult.nScanTime =  scanTimer.elapsed();
+    g_scanResult.nScanTime = scanTimer.elapsed();
 
     return g_scanResult;
 }
@@ -178,8 +178,8 @@ void XYara::_callbackCheckRules(int error_level, const char *file_name, int line
     } else if (error_level == YARA_ERROR_LEVEL_WARNING) {
         emit _pXYara->warningMessage(sString);
     }
-//    #define YARA_ERROR_LEVEL_ERROR   0
-//    #define YARA_ERROR_LEVEL_WARNING 1
+    //    #define YARA_ERROR_LEVEL_ERROR   0
+    //    #define YARA_ERROR_LEVEL_WARNING 1
     qDebug("_callbackCheckRules");
 }
 
@@ -188,13 +188,13 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
     int nResult = CALLBACK_CONTINUE;
 
     XYara *_pXYara = (XYara *)user_data;
-//    CALLBACK_MSG_RULE_MATCHING
-//    CALLBACK_MSG_RULE_NOT_MATCHING
-//    CALLBACK_MSG_SCAN_FINISHED
-//    CALLBACK_MSG_IMPORT_MODULE
-//    CALLBACK_MSG_MODULE_IMPORTED
-//    CALLBACK_MSG_TOO_MANY_MATCHES
-//    CALLBACK_MSG_CONSOLE_LOG
+    //    CALLBACK_MSG_RULE_MATCHING
+    //    CALLBACK_MSG_RULE_NOT_MATCHING
+    //    CALLBACK_MSG_SCAN_FINISHED
+    //    CALLBACK_MSG_IMPORT_MODULE
+    //    CALLBACK_MSG_MODULE_IMPORTED
+    //    CALLBACK_MSG_TOO_MANY_MATCHES
+    //    CALLBACK_MSG_CONSOLE_LOG
     if (message == CALLBACK_MSG_RULE_MATCHING) {
         YR_RULE *pYrRule = (YR_RULE *)message_data;
 
@@ -208,8 +208,10 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         scanStruct.sRulesFile = pYrRule->ns->name;
 
         if (pYrRule->strings != nullptr) {
-            yr_rule_strings_foreach(pYrRule, pYrString) {
-                yr_string_matches_foreach(context, pYrString, pYrMatch) {
+            yr_rule_strings_foreach(pYrRule, pYrString)
+            {
+                yr_string_matches_foreach(context, pYrString, pYrMatch)
+                {
                     SCAN_MATCH scanMatch = {};
                     scanMatch.sName = pYrString->identifier;
                     scanMatch.nOffset = pYrMatch->offset;
@@ -222,25 +224,25 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
 
         _pXYara->g_scanResult.listRecords.append(scanStruct);
     } else if (message == CALLBACK_MSG_RULE_NOT_MATCHING) {
-//        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-//        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
+        //        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+        //        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
     } else if (message == CALLBACK_MSG_TOO_MANY_MATCHES) {
-//        YR_STRING *pYrString = (YR_STRING *)message_data;
+        //        YR_STRING *pYrString = (YR_STRING *)message_data;
         // TODO warning
-//        qDebug("CALLBACK_MSG_TOO_MANY_MATCHES");
+        //        qDebug("CALLBACK_MSG_TOO_MANY_MATCHES");
         emit _pXYara->warningMessage("CALLBACK_MSG_TOO_MANY_MATCHES");
     } else if (message == CALLBACK_MSG_IMPORT_MODULE) {
-//        YR_MODULE_IMPORT *pModuleImport = (YR_MODULE_IMPORT *)message_data;
-//        qDebug("Module: %s", pModuleImport->module_name);
+        //        YR_MODULE_IMPORT *pModuleImport = (YR_MODULE_IMPORT *)message_data;
+        //        qDebug("Module: %s", pModuleImport->module_name);
     } else if (message == CALLBACK_MSG_MODULE_IMPORTED) {
-//        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-//        qDebug("Module: %s", pYrStruncture->identifier);
+        //        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+        //        qDebug("Module: %s", pYrStruncture->identifier);
     } else if (message == CALLBACK_MSG_CONSOLE_LOG) {
-//        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
-//        qDebug("Module: %s", pYrStruncture->identifier);
+        //        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
+        //        qDebug("Module: %s", pYrStruncture->identifier);
         emit _pXYara->infoMessage((char *)message_data);
     } else if (message == CALLBACK_MSG_SCAN_FINISHED) {
-        //qDebug("CALLBACK_MSG_SCAN_FINISHED");
+        // qDebug("CALLBACK_MSG_SCAN_FINISHED");
     }
 
     if (_pXYara->g_pPdStruct->bIsStop) {
@@ -254,4 +256,3 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
 
     return nResult;
 }
-
