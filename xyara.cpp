@@ -27,8 +27,6 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
     g_pYrCompiler = nullptr;
     g_pRules = nullptr;
     g_scanResult = {};
-    yr_compiler_create(&g_pYrCompiler);
-    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 }
 
 XYara::~XYara()
@@ -38,7 +36,10 @@ XYara::~XYara()
         g_pRules = nullptr;
     }
 
-    yr_compiler_destroy(g_pYrCompiler);
+    if (g_pYrCompiler) {
+        yr_compiler_destroy(g_pYrCompiler);
+        g_pYrCompiler = nullptr;
+    }
 }
 
 void XYara::initialize()
@@ -51,7 +52,7 @@ void XYara::finalize()
     yr_finalize();
 }
 
-bool XYara::addRulesFile(const QString &sFileName)
+bool XYara::_addRulesFile(const QString &sFileName)
 {
     bool bResult = false;
 
@@ -115,6 +116,38 @@ void XYara::setData(const QString &sFileName)
 XYara::SCAN_RESULT XYara::getScanResult()
 {
     return g_scanResult;
+}
+
+bool XYara::addRulesFile(const QString &sFileName)
+{
+    if (g_pYrCompiler) {
+        yr_compiler_destroy(g_pYrCompiler);
+    }
+
+    yr_compiler_create(&g_pYrCompiler);
+    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
+
+    return _addRulesFile(sFileName);
+}
+
+void XYara::loadRulesFromFolder(const QString &sPathFileName)
+{
+    if (g_pYrCompiler) {
+        yr_compiler_destroy(g_pYrCompiler);
+    }
+
+    yr_compiler_create(&g_pYrCompiler);
+    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
+
+    QDir directory(sPathFileName);
+
+    QList<QString> listFiles = directory.entryList(QStringList() << "*.yar", QDir::Files);
+
+    qint32 nNumberOfFiles = listFiles.count();
+
+    for (qint32 i = 0; i < nNumberOfFiles; i++) {
+        _addRulesFile(sPathFileName + QDir::separator() + listFiles.at(i));
+    }
 }
 
 void XYara::process()

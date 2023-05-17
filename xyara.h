@@ -66,16 +66,18 @@ public:
     static void initialize();
     static void finalize();
 
-    bool addRulesFile(const QString &sFileName);
     SCAN_RESULT scanFile(const QString &sFileName);
     void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
     void setData(const QString &sFileName);
     SCAN_RESULT getScanResult();
+    bool addRulesFile(const QString &sFileName);
+    void loadRulesFromFolder(const QString &sPathFileName);
 
 public slots:
     void process();
 
 private:
+    bool _addRulesFile(const QString &sFileName);
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
 

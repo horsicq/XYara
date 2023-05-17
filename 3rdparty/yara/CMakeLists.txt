@@ -15,7 +15,7 @@ if(WIN32)
   add_definitions(-DUSE_WINDOWS_PROC)
 endif()
 
-if(LINUX)
+if(UNIX AND NOT APPLE)
   add_definitions(-DUSE_LINUX_PROC)
 endif()
 
@@ -81,31 +81,21 @@ ${PROJECT_SOURCE_DIR}/src/tlshc/tlsh_util.c
 )
 
 if(WIN32)
-  add_library(yara STATIC
+  target_sources(yara PRIVATE
   ${PROJECT_SOURCE_DIR}/src/proc/windows.c
   )
 endif()
 
-if(LINUX)
-  add_library(yara STATIC
+if(UNIX AND NOT APPLE)
+  target_sources(yara PRIVATE
   ${PROJECT_SOURCE_DIR}/src/proc/linux.c
-  )
-endif()
-
-if(FREEBSD)
-  add_library(yara STATIC
   ${PROJECT_SOURCE_DIR}/src/proc/freebsd.c
-  )
-endif()
-
-if(OPENBSD)
-  add_library(yara STATIC
   ${PROJECT_SOURCE_DIR}/src/proc/openbsd.c
   )
 endif()
 
 if(APPLE)
-  add_library(yara STATIC
+  target_sources(yara PRIVATE
   ${PROJECT_SOURCE_DIR}/src/proc/mach.c
   )
 endif()
