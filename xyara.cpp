@@ -61,7 +61,7 @@ bool XYara::_addRulesFile(const QString &sFileName)
     wchar_t *pFileNameW = new wchar_t[sFileName.length() + 1];
     sFileName.toWCharArray(pFileNameW);
     pFileNameW[sFileName.length()] = 0;
-
+#ifdef Q_OS_WINDOWS
     pFile = _wfopen(pFileNameW, L"r");
     if (pFile != NULL) {
         int nResult = yr_compiler_add_file(g_pYrCompiler, pFile, QFileInfo(sFileName).baseName().toLatin1().data(), sFileName.toLatin1().data());
@@ -72,6 +72,7 @@ bool XYara::_addRulesFile(const QString &sFileName)
 
         fclose(pFile);
     }
+#endif
 
     delete[] pFileNameW;
 
