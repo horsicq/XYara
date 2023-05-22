@@ -76,8 +76,9 @@ bool XYara::_addRulesFile(const QString &sFileName)
         fclose(pFile);
     }
 
-
+#ifdef Q_OS_WINDOWS
     delete[] pFileNameW;
+#endif
 
     //    if (g_pRules) {
     //        yr_rules_destroy(g_pRules);
