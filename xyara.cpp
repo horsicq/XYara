@@ -31,15 +31,15 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
 
 XYara::~XYara()
 {
-    if (g_pRules) {
-        yr_rules_destroy(g_pRules);
-        g_pRules = nullptr;
-    }
+//    if (g_pRules) {
+//        yr_rules_destroy(g_pRules);
+//        g_pRules = nullptr;
+//    }
 
-    if (g_pYrCompiler) {
-        yr_compiler_destroy(g_pYrCompiler);
-        g_pYrCompiler = nullptr;
-    }
+//    if (g_pYrCompiler) {
+//        yr_compiler_destroy(g_pYrCompiler);
+//        g_pYrCompiler = nullptr;
+//    }
 }
 
 void XYara::initialize()
@@ -56,13 +56,16 @@ bool XYara::_addRulesFile(const QString &sFileName)
 {
     bool bResult = false;
 
-    FILE *pFile;
+    FILE *pFile = nullptr;
 
+#ifdef Q_OS_WINDOWS
     wchar_t *pFileNameW = new wchar_t[sFileName.length() + 1];
     sFileName.toWCharArray(pFileNameW);
     pFileNameW[sFileName.length()] = 0;
-#ifdef Q_OS_WINDOWS
     pFile = _wfopen(pFileNameW, L"r");
+#else
+    // TODO open
+#endif
     if (pFile != NULL) {
         int nResult = yr_compiler_add_file(g_pYrCompiler, pFile, QFileInfo(sFileName).baseName().toLatin1().data(), sFileName.toLatin1().data());
 
@@ -72,7 +75,7 @@ bool XYara::_addRulesFile(const QString &sFileName)
 
         fclose(pFile);
     }
-#endif
+
 
     delete[] pFileNameW;
 
@@ -123,6 +126,7 @@ bool XYara::addRulesFile(const QString &sFileName)
 {
     if (g_pYrCompiler) {
         yr_compiler_destroy(g_pYrCompiler);
+        g_pYrCompiler = g_pYrCompiler;
     }
 
     yr_compiler_create(&g_pYrCompiler);
@@ -133,8 +137,14 @@ bool XYara::addRulesFile(const QString &sFileName)
 
 void XYara::loadRulesFromFolder(const QString &sPathFileName)
 {
+    if (g_pRules) {
+        yr_rules_destroy(g_pRules);
+        g_pRules = nullptr;
+    }
+
     if (g_pYrCompiler) {
         yr_compiler_destroy(g_pYrCompiler);
+        g_pYrCompiler = nullptr;
     }
 
     yr_compiler_create(&g_pYrCompiler);
@@ -149,6 +159,22 @@ void XYara::loadRulesFromFolder(const QString &sPathFileName)
     for (qint32 i = 0; i < nNumberOfFiles; i++) {
         _addRulesFile(sPathFileName + QDir::separator() + listFiles.at(i));
     }
+}
+
+XYara::SCAN_STRUCT XYara::getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID)
+{
+    XYara::SCAN_STRUCT result = {};
+
+    qint32 nNumberOfRecords = pScanResult->listRecords.count();
+
+    for (qint32 i = 0; i < nNumberOfRecords; i++) {
+        if (pScanResult->listRecords.at(i).sUUID == sUUID) {
+            result = pScanResult->listRecords.at(i);
+            break;
+        }
+    }
+
+    return result;
 }
 
 void XYara::process()

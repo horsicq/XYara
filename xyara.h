@@ -71,6 +71,7 @@ public:
     SCAN_RESULT getScanResult();
     bool addRulesFile(const QString &sFileName);
     void loadRulesFromFolder(const QString &sPathFileName);
+    static SCAN_STRUCT getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID);
 
 public slots:
     void process();
