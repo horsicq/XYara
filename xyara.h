@@ -69,7 +69,7 @@ public:
     void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
     void setData(const QString &sFileName);
     SCAN_RESULT getScanResult();
-    bool addRulesFile(const QString &sFileName);
+    bool setRulesFile(const QString &sFileName);
     void loadRulesFromFolder(const QString &sPathFileName);
     static SCAN_STRUCT getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID);
 
@@ -94,6 +94,7 @@ private:
     XBinary::PDSTRUCT g_pdStructEmpty;
     QString g_sFileName;
     SCAN_RESULT g_scanResult;
+    QMap<QString, QString> g_mapFileNames;
 };
 
 #endif  // XYARA_H
