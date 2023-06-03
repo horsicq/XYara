@@ -31,15 +31,15 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
 
 XYara::~XYara()
 {
-//    if (g_pRules) {
-//        yr_rules_destroy(g_pRules);
-//        g_pRules = nullptr;
-//    }
+    //    if (g_pRules) {
+    //        yr_rules_destroy(g_pRules);
+    //        g_pRules = nullptr;
+    //    }
 
-//    if (g_pYrCompiler) {
-//        yr_compiler_destroy(g_pYrCompiler);
-//        g_pYrCompiler = nullptr;
-//    }
+    //    if (g_pYrCompiler) {
+    //        yr_compiler_destroy(g_pYrCompiler);
+    //        g_pYrCompiler = nullptr;
+    //    }
 }
 
 void XYara::initialize()
