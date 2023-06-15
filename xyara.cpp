@@ -64,7 +64,7 @@ bool XYara::_addRulesFile(const QString &sFileName)
     pFileNameW[sFileName.length()] = 0;
     pFile = _wfopen(pFileNameW, L"r");
 #else
-    // TODO open
+    pFile = fopen(sFileName.toUtf8().data(), "r");
 #ifdef QT_DEBUG
     qDebug("bool XYara::_addRulesFile(const QString &sFileName)");
 #endif
