@@ -37,6 +37,7 @@ public:
         QString sUUID;
         QString sRule;
         QString sRulesFile;
+        QString sRulesFullFileName;
         QList<SCAN_MATCH> listScanMatches;
     };
 

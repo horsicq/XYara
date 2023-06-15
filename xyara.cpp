@@ -253,6 +253,7 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         scanStruct.sUUID = XBinary::generateUUID();
         scanStruct.sRule = pYrRule->identifier;
         scanStruct.sRulesFile = pYrRule->ns->name;
+        scanStruct.sRulesFullFileName = _pXYara->getFileNameByRulesFileName(scanStruct.sRulesFile);
 
         if (pYrRule->strings != nullptr) {
             yr_rule_strings_foreach(pYrRule, pYrString)
