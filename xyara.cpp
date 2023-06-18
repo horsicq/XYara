@@ -192,7 +192,7 @@ XYara::SCAN_STRUCT XYara::getScanStructByUUID(SCAN_RESULT *pScanResult, const QS
     return result;
 }
 
-QString XYara::getFileNameByRulesFileName(QString sRulesFileName)
+QString XYara::getFileNameByRulesFileName(const QString &sRulesFileName)
 {
     return g_mapFileNames.value(sRulesFileName);
 }
