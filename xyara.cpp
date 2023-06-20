@@ -107,6 +107,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     // TODO flags
     int nResult = yr_rules_scan_file(g_pRules, sFileName.toLatin1().data(), 0, &XYara::_callbackScan, this, 0);
 
+    Q_UNUSED(nResult)
+
     g_scanResult.sFileName = sFileName;
     g_scanResult.nScanTime = scanTimer.elapsed();
 
