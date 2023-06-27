@@ -39,7 +39,12 @@ linux {
 macx {
     DEFINES += "USE_MACH_PROC"
 }
-
+freebsd {
+    DEFINES += "USE_FREEBSD_PROC"
+}
+openbsd {
+    DEFINES += "USE_OPENBSD_PROC"
+}
 
 TARGETLIB_PATH = $$PWD
 
@@ -123,13 +128,15 @@ SOURCES += \
 win32 {
     SOURCES += src/proc/windows.c
 }
-
-unix:!macx {
+linux {
     SOURCES += src/proc/linux.c
+}
+openbsd {
     SOURCES += src/proc/openbsd.c
+}
+freebsd {
     SOURCES += src/proc/freebsd.c
 }
-
 unix:macx {
     SOURCES += src/proc/mach.c
 }

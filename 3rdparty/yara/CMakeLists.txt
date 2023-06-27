@@ -15,12 +15,20 @@ if(WIN32)
   add_definitions(-DUSE_WINDOWS_PROC)
 endif()
 
-if(UNIX AND NOT APPLE)
+if(LINUX)
   add_definitions(-DUSE_LINUX_PROC)
 endif()
 
 if(APPLE)
   add_definitions(-DUSE_MACH_PROC)
+endif()
+
+if(FREEBSD)
+  add_definitions(-DUSE_FREEBSD_PROC)
+endif()
+
+if(OPENBSD)
+  add_definitions(-DUSE_OPENBSD_PROC)
 endif()
 
 add_definitions(
