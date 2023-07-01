@@ -228,7 +228,7 @@ void XYara::_callbackCheckRules(int error_level, const char *file_name, int line
     }
     //    #define YARA_ERROR_LEVEL_ERROR   0
     //    #define YARA_ERROR_LEVEL_WARNING 1
-    //qDebug("_callbackCheckRules");
+    // qDebug("_callbackCheckRules");
 }
 
 int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data)
@@ -301,7 +301,7 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
     // YR_OBJECT_STRUCTURE
 
     // TODO Check pdstruct
-    //qDebug("_callbackScan: %d", message);
+    // qDebug("_callbackScan: %d", message);
 
     return nResult;
 }
