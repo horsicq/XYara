@@ -32,6 +32,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <yara/integers.h>
 
+#if (defined(__GNUC__) && defined(__STRICT_ANSI__)) || (defined(_MSC_VER) && !defined(__cplusplus))   /* Visual Studio */
+#  define inline __inline           /* Visual C is not C99, but supports some kind of inline */
+#endif
+
 #pragma pack(push)
 #pragma pack(1)
 
