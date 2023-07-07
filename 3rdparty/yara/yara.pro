@@ -5,7 +5,17 @@ TEMPLATE = lib
 CONFIG += staticlib
 
 linux {
-    QMAKE_CFLAGS += -std=c99
+    QMAKE_CFLAGS += -std=c11
+    DEFINES += "_GNU_SOURCE"
+}
+
+freebsd {
+    QMAKE_CFLAGS += -std=c11
+    DEFINES += "_GNU_SOURCE"
+}
+openbsd {
+    QMAKE_CFLAGS += -std=c11
+    DEFINES += "_GNU_SOURCE"
 }
 
 CONFIG += c++11
