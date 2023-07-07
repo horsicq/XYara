@@ -4,6 +4,10 @@ TARGET = yara
 TEMPLATE = lib
 CONFIG += staticlib
 
+linux {
+    QMAKE_CFLAGS += -std=c99
+}
+
 CONFIG += c++11
 
 INCLUDEPATH += $$PWD
