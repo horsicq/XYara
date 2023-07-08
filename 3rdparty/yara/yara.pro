@@ -96,6 +96,7 @@ SOURCES += \
     src/base64.c \
     src/bitmask.c \
     src/compiler.c \
+    src/endian.c \
     src/exec.c \
     src/exefiles.c \
     src/filemap.c \
@@ -122,6 +123,7 @@ SOURCES += \
     src/object.c \
     src/parser.c \
     src/proc.c \
+    src/proc/none.c \
     src/re.c \
     src/re_grammar.c \
     src/re_lexer.c \

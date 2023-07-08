@@ -17,6 +17,7 @@ endif()
 
 if(LINUX)
   add_definitions(-DUSE_LINUX_PROC)
+  add_definitions(-D_GNU_SOURCE)
 endif()
 
 if(APPLE)
@@ -25,10 +26,12 @@ endif()
 
 if(FREEBSD)
   add_definitions(-DUSE_FREEBSD_PROC)
+  add_definitions(-D_GNU_SOURCE)
 endif()
 
 if(OPENBSD)
   add_definitions(-DUSE_OPENBSD_PROC)
+  add_definitions(-D_GNU_SOURCE)
 endif()
 
 add_definitions(
@@ -44,6 +47,7 @@ ${PROJECT_SOURCE_DIR}/src/atoms.c
 ${PROJECT_SOURCE_DIR}/src/base64.c
 ${PROJECT_SOURCE_DIR}/src/bitmask.c
 ${PROJECT_SOURCE_DIR}/src/compiler.c
+${PROJECT_SOURCE_DIR}/src/endian.c
 ${PROJECT_SOURCE_DIR}/src/exec.c
 ${PROJECT_SOURCE_DIR}/src/exefiles.c
 ${PROJECT_SOURCE_DIR}/src/filemap.c
@@ -70,6 +74,7 @@ ${PROJECT_SOURCE_DIR}/src/notebook.c
 ${PROJECT_SOURCE_DIR}/src/object.c
 ${PROJECT_SOURCE_DIR}/src/parser.c
 ${PROJECT_SOURCE_DIR}/src/proc.c
+${PROJECT_SOURCE_DIR}/src/proc/none.c
 ${PROJECT_SOURCE_DIR}/src/re.c
 ${PROJECT_SOURCE_DIR}/src/re_grammar.c
 ${PROJECT_SOURCE_DIR}/src/re_lexer.c
