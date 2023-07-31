@@ -42,7 +42,15 @@ CONFIG(debug, debug|release) {
 #DEFINES += "HASH_MODULE"
 DEFINES += "DOTNET_MODULE"
 DEFINES += "YR_BUILDING_STATIC_LIB"
-DEFINES += "BUCKETS_256"
+#DEFINES += "BUCKETS_256"
+DEFINES += "BUCKETS_128"
+# pthreads linux
+# DEFINES += "_THREAD_SAFE" # macOS check
+# DEFINES += "HASH_MODULE"  # macOS check
+# TODO Check DEFS  in MakeFile
+# TODO Check bazel/yara.bzl
+
+#YR_PROFILING_ENABLED;BUCKETS_128;CHECKSUM_1B # Windows
 
 win32 {
     DEFINES += "USE_WINDOWS_PROC"
