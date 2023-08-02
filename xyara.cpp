@@ -71,7 +71,7 @@ bool XYara::_addRulesFile(const QString &sFileName)
 #endif
     if (pFile != NULL) {
         QString sBaseName = QFileInfo(sFileName).baseName();
-        int nResult = yr_compiler_add_file(g_pYrCompiler, pFile, sBaseName.toLatin1().data(), sFileName.toLatin1().data());
+        int nResult = yr_compiler_add_file(g_pYrCompiler, pFile, sBaseName.toUtf8().data(), sFileName.toUtf8().data());
 
         if (nResult == 0) {
             g_mapFileNames.insert(sBaseName, sFileName);
@@ -105,7 +105,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     g_scanResult = {};
 
     // TODO flags
-    int nResult = yr_rules_scan_file(g_pRules, sFileName.toLatin1().data(), 0, &XYara::_callbackScan, this, 0);
+    int nResult = yr_rules_scan_file(g_pRules, sFileName.toUtf8().data(), 0, &XYara::_callbackScan, this, 0);
 
     Q_UNUSED(nResult)
 
