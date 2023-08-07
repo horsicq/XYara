@@ -20,9 +20,9 @@
  */
 #ifndef XYARA_H
 #define XYARA_H
-
 #include "yara.h"
 #include "xbinary.h"
+//#include <crtdbg.h>
 
 class XYara : public QObject {
     Q_OBJECT
@@ -84,9 +84,9 @@ private:
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
 
 signals:
-    void errorMessage(QString sErrorMessage);
-    void warningMessage(QString sWarningMessage);
-    void infoMessage(QString sInfoMessage);
+    void errorMessage(const QString &sErrorMessage);
+    void warningMessage(const QString &sWarningMessage);
+    void infoMessage(const QString &sInfoMessage);
     void completed(qint64 nElapsed);
 
 private:
