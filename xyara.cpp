@@ -103,13 +103,13 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     }
 
     g_scanResult = {};
-        // TODO flags
-//    _CrtMemState s1,s2,s3;
-//    _CrtMemCheckpoint( &s1 );
+    // TODO flags
+    //    _CrtMemState s1,s2,s3;
+    //    _CrtMemCheckpoint( &s1 );
     int nResult = yr_rules_scan_file(g_pRules, sFileName.toUtf8().data(), 0, &XYara::_callbackScan, this, 0);
-//    _CrtMemCheckpoint( &s2 );
-//    if ( _CrtMemDifference( &s3, &s1, &s2) )
-//       _CrtMemDumpStatistics( &s3 );
+    //    _CrtMemCheckpoint( &s2 );
+    //    if ( _CrtMemDifference( &s3, &s1, &s2) )
+    //       _CrtMemDumpStatistics( &s3 );
 
     g_scanResult.sFileName = sFileName;
     g_scanResult.nScanTime = scanTimer.elapsed();

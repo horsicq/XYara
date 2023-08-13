@@ -22,7 +22,7 @@
 #define XYARA_H
 #include "yara.h"
 #include "xbinary.h"
-//#include <crtdbg.h>
+// #include <crtdbg.h>
 
 class XYara : public QObject {
     Q_OBJECT
