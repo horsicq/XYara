@@ -154,6 +154,8 @@ bool XYara::setRulesFile(const QString &sFileName)
 
 void XYara::loadRulesFromFolder(const QString &sPathFileName)
 {
+    QString _sPathFileName = XBinary::convertPathName(sPathFileName);
+
     if (g_pRules) {
         yr_rules_destroy(g_pRules);
         g_pRules = nullptr;
@@ -169,14 +171,14 @@ void XYara::loadRulesFromFolder(const QString &sPathFileName)
     yr_compiler_create(&g_pYrCompiler);
     yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 
-    QDir directory(sPathFileName);
+    QDir directory(_sPathFileName);
 
     QList<QString> listFiles = directory.entryList(QStringList() << "*.yar", QDir::Files);
 
     qint32 nNumberOfFiles = listFiles.count();
 
     for (qint32 i = 0; i < nNumberOfFiles; i++) {
-        _addRulesFile(sPathFileName + QDir::separator() + listFiles.at(i));
+        _addRulesFile(_sPathFileName + QDir::separator() + listFiles.at(i));
     }
 }
 
