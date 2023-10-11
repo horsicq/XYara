@@ -22,6 +22,7 @@
 #define XYARA_H
 #include "yara.h"
 #include "xbinary.h"
+#include <QThread>
 // #include <crtdbg.h>
 
 class XYara : public QObject {
@@ -80,6 +81,7 @@ public slots:
 
 private:
     bool _addRulesFile(const QString &sFileName);
+    bool _handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, QString sInfo);
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
 
@@ -90,13 +92,12 @@ signals:
     void completed(qint64 nElapsed);
 
 private:
-    YR_RULES *g_pRules;
-    YR_COMPILER *g_pYrCompiler;
     XBinary::PDSTRUCT *g_pPdStruct;
     XBinary::PDSTRUCT g_pdStructEmpty;
     QString g_sFileName;
     SCAN_RESULT g_scanResult;
     QMap<QString, QString> g_mapFileNames;
+    bool g_bProcess;
 };
 
 #endif  // XYARA_H

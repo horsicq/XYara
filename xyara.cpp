@@ -24,22 +24,13 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
 {
     g_pdStructEmpty = XBinary::createPdStruct();
     g_pPdStruct = &g_pdStructEmpty;
-    g_pYrCompiler = nullptr;
-    g_pRules = nullptr;
     g_scanResult = {};
+    g_bProcess = false;
 }
 
 XYara::~XYara()
 {
-    //    if (g_pRules) {
-    //        yr_rules_destroy(g_pRules);
-    //        g_pRules = nullptr;
-    //    }
 
-    //    if (g_pYrCompiler) {
-    //        yr_compiler_destroy(g_pYrCompiler);
-    //        g_pYrCompiler = nullptr;
-    //    }
 }
 
 void XYara::initialize()
@@ -56,6 +47,19 @@ bool XYara::_addRulesFile(const QString &sFileName)
 {
     bool bResult = false;
 
+    if (QFile::exists(sFileName)) {
+        QString sBaseName = QFileInfo(sFileName).baseName();
+        g_mapFileNames.insert(sBaseName, sFileName);
+        bResult = true;
+    }
+
+    return bResult;
+}
+
+bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, QString sInfo)
+{
+    bool bResult = false;
+
     FILE *pFile = nullptr;
 
 #ifdef Q_OS_WINDOWS
@@ -65,16 +69,11 @@ bool XYara::_addRulesFile(const QString &sFileName)
     pFile = _wfopen(pFileNameW, L"r");
 #else
     pFile = fopen(sFileName.toUtf8().data(), "r");
-#ifdef QT_DEBUG
-    qDebug("bool XYara::_addRulesFile(const QString &sFileName)");
-#endif
 #endif
     if (pFile != NULL) {
-        QString sBaseName = QFileInfo(sFileName).baseName();
-        int nResult = yr_compiler_add_file(g_pYrCompiler, pFile, sBaseName.toUtf8().data(), sFileName.toUtf8().data());
+        int nResult = yr_compiler_add_file(*ppYrCompiler, pFile, sInfo.toUtf8().data(), sFileName.toUtf8().data());
 
         if (nResult == 0) {
-            g_mapFileNames.insert(sBaseName, sFileName);
             bResult = true;
         }
 
@@ -85,11 +84,6 @@ bool XYara::_addRulesFile(const QString &sFileName)
     delete[] pFileNameW;
 #endif
 
-    //    if (g_pRules) {
-    //        yr_rules_destroy(g_pRules);
-    //        g_pRules = nullptr;
-    //    }
-
     return bResult;
 }
 
@@ -98,18 +92,42 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     QElapsedTimer scanTimer;
     scanTimer.start();
 
-    if (!g_pRules) {
-        yr_compiler_get_rules(g_pYrCompiler, &g_pRules);
+    YR_RULES *pRules = nullptr;
+    YR_COMPILER *pYrCompiler = nullptr;
+
+    yr_compiler_create(&pYrCompiler);
+
+    QMapIterator<QString, QString> iter(g_mapFileNames);
+
+    if (iter.hasNext()) {
+        iter.next();
+        QString sBaseName = iter.key();
+        QString sFileName = iter.value();
+
+        _handleRulesFile(&pYrCompiler, sFileName, sBaseName);
     }
+
+    yr_compiler_get_rules(pYrCompiler, &pRules);
 
     g_scanResult = {};
     // TODO flags
     //    _CrtMemState s1,s2,s3;
     //    _CrtMemCheckpoint( &s1 );
-    int nResult = yr_rules_scan_file(g_pRules, sFileName.toUtf8().data(), 0, &XYara::_callbackScan, this, 0);
+    g_bProcess = true;
+
+    int nResult = yr_rules_scan_file(pRules, sFileName.toUtf8().data(), 0, &XYara::_callbackScan, this, 0);
     //    _CrtMemCheckpoint( &s2 );
     //    if ( _CrtMemDifference( &s3, &s1, &s2) )
     //       _CrtMemDumpStatistics( &s3 );
+
+    while(g_bProcess) {
+        QThread::msleep(100);
+    }
+
+    QThread::msleep(100);
+
+    yr_rules_destroy(pRules);
+    yr_compiler_destroy(pYrCompiler);
 
     g_scanResult.sFileName = sFileName;
     g_scanResult.nScanTime = scanTimer.elapsed();
@@ -134,20 +152,20 @@ XYara::SCAN_RESULT XYara::getScanResult()
 
 bool XYara::setRulesFile(const QString &sFileName)
 {
-    if (g_pRules) {
-        yr_rules_destroy(g_pRules);
-        g_pRules = nullptr;
-    }
+//    if (g_pRules) {
+//        yr_rules_destroy(g_pRules);
+//        g_pRules = nullptr;
+//    }
 
-    if (g_pYrCompiler) {
-        yr_compiler_destroy(g_pYrCompiler);
-        g_pYrCompiler = g_pYrCompiler;
-    }
+//    if (g_pYrCompiler) {
+//        yr_compiler_destroy(g_pYrCompiler);
+//        g_pYrCompiler = g_pYrCompiler;
+//    }
 
     g_mapFileNames.clear();
 
-    yr_compiler_create(&g_pYrCompiler);
-    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
+//    yr_compiler_create(&g_pYrCompiler);
+//    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 
     return _addRulesFile(sFileName);
 }
@@ -156,20 +174,15 @@ void XYara::loadRulesFromFolder(const QString &sPathFileName)
 {
     QString _sPathFileName = XBinary::convertPathName(sPathFileName);
 
-    if (g_pRules) {
-        yr_rules_destroy(g_pRules);
-        g_pRules = nullptr;
-    }
-
-    if (g_pYrCompiler) {
-        yr_compiler_destroy(g_pYrCompiler);
-        g_pYrCompiler = nullptr;
-    }
+//    if (g_pYrCompiler) {
+//        yr_compiler_destroy(g_pYrCompiler);
+//        g_pYrCompiler = nullptr;
+//    }
 
     g_mapFileNames.clear();
 
-    yr_compiler_create(&g_pYrCompiler);
-    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
+//    yr_compiler_create(&g_pYrCompiler);
+//    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 
     QDir directory(_sPathFileName);
 
@@ -249,7 +262,9 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
     //    CALLBACK_MSG_CONSOLE_LOG
     if (message == CALLBACK_MSG_RULE_MATCHING) {
         YR_RULE *pYrRule = (YR_RULE *)message_data;
-
+#ifdef QT_DEBUG
+        qDebug("%s", pYrRule->identifier);
+#endif
         SCAN_STRUCT scanStruct = {};
 
         YR_STRING *pYrString = nullptr;
@@ -296,6 +311,7 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         emit _pXYara->infoMessage((char *)message_data);
     } else if (message == CALLBACK_MSG_SCAN_FINISHED) {
         // qDebug("CALLBACK_MSG_SCAN_FINISHED");
+        _pXYara->g_bProcess = false;
     }
 
     if (_pXYara->g_pPdStruct->bIsStop) {
