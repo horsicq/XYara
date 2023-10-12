@@ -101,13 +101,17 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
 
     if (iter.hasNext()) {
         iter.next();
-        QString sBaseName = iter.key();
-        QString sFileName = iter.value();
+        QString _sBaseName = iter.key();
+        QString _sFileName = iter.value();
 
-        _handleRulesFile(&pYrCompiler, sFileName, sBaseName);
+        _handleRulesFile(&pYrCompiler, _sFileName, _sBaseName);
     }
 
-    yr_compiler_get_rules(pYrCompiler, &pRules);
+    int nTest = 0;
+
+    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
+//    nTest = yr_rules_destroy(pRules);
+//    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
 
     g_scanResult = {};
     // TODO flags
@@ -119,12 +123,6 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     //    _CrtMemCheckpoint( &s2 );
     //    if ( _CrtMemDifference( &s3, &s1, &s2) )
     //       _CrtMemDumpStatistics( &s3 );
-
-    while(g_bProcess) {
-        QThread::msleep(100);
-    }
-
-    QThread::msleep(100);
 
     yr_rules_destroy(pRules);
     yr_compiler_destroy(pYrCompiler);
