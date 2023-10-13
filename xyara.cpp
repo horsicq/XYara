@@ -25,7 +25,7 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
     g_pdStructEmpty = XBinary::createPdStruct();
     g_pPdStruct = &g_pdStructEmpty;
     g_scanResult = {};
-    g_bProcess = false;
+    g_nFreeIndex = -1;
 }
 
 XYara::~XYara()
@@ -41,19 +41,6 @@ void XYara::initialize()
 void XYara::finalize()
 {
     yr_finalize();
-}
-
-bool XYara::_addRulesFile(const QString &sFileName)
-{
-    bool bResult = false;
-
-    if (QFile::exists(sFileName)) {
-        QString sBaseName = QFileInfo(sFileName).baseName();
-        g_mapFileNames.insert(sBaseName, sFileName);
-        bResult = true;
-    }
-
-    return bResult;
 }
 
 bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, QString sInfo)
@@ -87,39 +74,67 @@ bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileNam
     return bResult;
 }
 
-XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
+XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFileNameOrDirectory, XBinary::PDSTRUCT *pPdStruct)
 {
+    XBinary::PDSTRUCT pdStructEmpty = XBinary::createPdStruct();
+
+    if (!pPdStruct) {
+        pPdStruct = &pdStructEmpty;
+    }
+
     QElapsedTimer scanTimer;
     scanTimer.start();
+
+    g_nFreeIndex = XBinary::getFreeIndex(g_pPdStruct);
+    XBinary::setPdStructInit(g_pPdStruct, g_nFreeIndex, 0);
 
     YR_RULES *pRules = nullptr;
     YR_COMPILER *pYrCompiler = nullptr;
 
     yr_compiler_create(&pYrCompiler);
 
-    QMapIterator<QString, QString> iter(g_mapFileNames);
+    g_mapFileNames.clear();
 
-    if (iter.hasNext()) {
-        iter.next();
-        QString _sBaseName = iter.key();
-        QString _sFileName = iter.value();
+//    yr_compiler_create(&g_pYrCompiler);
+//    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
+    QString _sFileNameOrDirectory = XBinary::convertPathName(sFileNameOrDirectory);
 
-        _handleRulesFile(&pYrCompiler, _sFileName, _sBaseName);
+    if (QFileInfo(_sFileNameOrDirectory).isDir()) {
+        QDir directory(_sFileNameOrDirectory);
+
+        QList<QString> listFiles = directory.entryList(QStringList() << "*.yar", QDir::Files);
+
+        qint32 nNumberOfFiles = listFiles.count();
+
+        for (qint32 i = 0; i < nNumberOfFiles; i++) {
+            QString sFileName = _sFileNameOrDirectory + QDir::separator() + listFiles.at(i);
+            QString sBaseName = QFileInfo(sFileName).baseName();
+
+            g_mapFileNames.insert(sBaseName, sFileName);
+            _handleRulesFile(&pYrCompiler, sFileName, sBaseName);
+        }
+    } else if (QFile::exists(_sFileNameOrDirectory)){
+        QString sBaseName = QFileInfo(_sFileNameOrDirectory).baseName();
+        g_mapFileNames.insert(sBaseName, _sFileNameOrDirectory);
+        _handleRulesFile(&pYrCompiler, _sFileNameOrDirectory, sBaseName);
     }
+    //    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 
-    int nTest = 0;
-
-    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
+    yr_compiler_get_rules(pYrCompiler, &pRules);
 //    nTest = yr_rules_destroy(pRules);
 //    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
+
+    if (pRules) {
+        XBinary::setPdStructTotal(pPdStruct, g_nFreeIndex, pRules->num_rules);
+        XBinary::setPdStructStatus(pPdStruct, g_nFreeIndex, tr("Start"));
+    }
 
     g_scanResult = {};
     // TODO flags
     //    _CrtMemState s1,s2,s3;
     //    _CrtMemCheckpoint( &s1 );
-    g_bProcess = true;
 
-    int nResult = yr_rules_scan_file(pRules, sFileName.toUtf8().data(), 0, &XYara::_callbackScan, this, 0);
+    int nResult = yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
     //    _CrtMemCheckpoint( &s2 );
     //    if ( _CrtMemDifference( &s3, &s1, &s2) )
     //       _CrtMemDumpStatistics( &s3 );
@@ -130,6 +145,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName)
     g_scanResult.sFileName = sFileName;
     g_scanResult.nScanTime = scanTimer.elapsed();
 
+    XBinary::setPdStructFinished(g_pPdStruct, g_nFreeIndex);
+
     return g_scanResult;
 }
 
@@ -138,59 +155,15 @@ void XYara::setPdStruct(XBinary::PDSTRUCT *pPdStruct)
     g_pPdStruct = pPdStruct;
 }
 
-void XYara::setData(const QString &sFileName)
+void XYara::setData(const QString &sFileName, const QString &sRulesPath)
 {
     g_sFileName = sFileName;
+    g_sRulesPath = sRulesPath;
 }
 
 XYara::SCAN_RESULT XYara::getScanResult()
 {
     return g_scanResult;
-}
-
-bool XYara::setRulesFile(const QString &sFileName)
-{
-//    if (g_pRules) {
-//        yr_rules_destroy(g_pRules);
-//        g_pRules = nullptr;
-//    }
-
-//    if (g_pYrCompiler) {
-//        yr_compiler_destroy(g_pYrCompiler);
-//        g_pYrCompiler = g_pYrCompiler;
-//    }
-
-    g_mapFileNames.clear();
-
-//    yr_compiler_create(&g_pYrCompiler);
-//    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
-
-    return _addRulesFile(sFileName);
-}
-
-void XYara::loadRulesFromFolder(const QString &sPathFileName)
-{
-    QString _sPathFileName = XBinary::convertPathName(sPathFileName);
-
-//    if (g_pYrCompiler) {
-//        yr_compiler_destroy(g_pYrCompiler);
-//        g_pYrCompiler = nullptr;
-//    }
-
-    g_mapFileNames.clear();
-
-//    yr_compiler_create(&g_pYrCompiler);
-//    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
-
-    QDir directory(_sPathFileName);
-
-    QList<QString> listFiles = directory.entryList(QStringList() << "*.yar", QDir::Files);
-
-    qint32 nNumberOfFiles = listFiles.count();
-
-    for (qint32 i = 0; i < nNumberOfFiles; i++) {
-        _addRulesFile(_sPathFileName + QDir::separator() + listFiles.at(i));
-    }
 }
 
 XYara::SCAN_STRUCT XYara::getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID)
@@ -222,7 +195,7 @@ void XYara::process()
     int nFreeIndex = XBinary::getFreeIndex(g_pPdStruct);
     XBinary::setPdStructInit(g_pPdStruct, nFreeIndex, 0);
 
-    scanFile(g_sFileName);
+    scanFile(g_sFileName, g_sRulesPath, g_pPdStruct);
 
     XBinary::setPdStructFinished(g_pPdStruct, nFreeIndex);
 
@@ -289,9 +262,15 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         }
 
         _pXYara->g_scanResult.listRecords.append(scanStruct);
+
+        XBinary::setPdStructCurrentIncrement(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex);
+        XBinary::setPdStructStatus(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex, pYrRule->identifier);
     } else if (message == CALLBACK_MSG_RULE_NOT_MATCHING) {
+        YR_RULE *pYrRule = (YR_RULE *)message_data;
         //        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
         //        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
+        XBinary::setPdStructCurrentIncrement(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex);
+        XBinary::setPdStructStatus(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex, pYrRule->identifier);
     } else if (message == CALLBACK_MSG_TOO_MANY_MATCHES) {
         //        YR_STRING *pYrString = (YR_STRING *)message_data;
         // TODO warning
@@ -309,7 +288,6 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         emit _pXYara->infoMessage((char *)message_data);
     } else if (message == CALLBACK_MSG_SCAN_FINISHED) {
         // qDebug("CALLBACK_MSG_SCAN_FINISHED");
-        _pXYara->g_bProcess = false;
     }
 
     if (_pXYara->g_pPdStruct->bIsStop) {

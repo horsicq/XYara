@@ -67,12 +67,10 @@ public:
     static void initialize();
     static void finalize();
 
-    SCAN_RESULT scanFile(const QString &sFileName);
+    SCAN_RESULT scanFile(const QString &sFileName, const QString &sFileNameOrDirectory, XBinary::PDSTRUCT *pPdStruct);
     void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
-    void setData(const QString &sFileName);
+    void setData(const QString &sFileName, const QString &sRulesPath);
     SCAN_RESULT getScanResult();
-    bool setRulesFile(const QString &sFileName);
-    void loadRulesFromFolder(const QString &sPathFileName);
     static SCAN_STRUCT getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID);
     QString getFileNameByRulesFileName(const QString &sRulesFileName);
 
@@ -80,7 +78,6 @@ public slots:
     void process();
 
 private:
-    bool _addRulesFile(const QString &sFileName);
     bool _handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, QString sInfo);
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
@@ -94,10 +91,11 @@ signals:
 private:
     XBinary::PDSTRUCT *g_pPdStruct;
     XBinary::PDSTRUCT g_pdStructEmpty;
+    qint32 g_nFreeIndex;
     QString g_sFileName;
+    QString g_sRulesPath;
     SCAN_RESULT g_scanResult;
     QMap<QString, QString> g_mapFileNames;
-    bool g_bProcess;
 };
 
 #endif  // XYARA_H
