@@ -30,7 +30,6 @@ XYara::XYara(QObject *pParent) : QObject(pParent)
 
 XYara::~XYara()
 {
-
 }
 
 void XYara::initialize()
@@ -95,8 +94,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
 
     g_mapFileNames.clear();
 
-//    yr_compiler_create(&g_pYrCompiler);
-//    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
+    //    yr_compiler_create(&g_pYrCompiler);
+    //    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
     QString _sFileNameOrDirectory = XBinary::convertPathName(sFileNameOrDirectory);
 
     if (QFileInfo(_sFileNameOrDirectory).isDir()) {
@@ -113,7 +112,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
             g_mapFileNames.insert(sBaseName, sFileName);
             _handleRulesFile(&pYrCompiler, sFileName, sBaseName);
         }
-    } else if (QFile::exists(_sFileNameOrDirectory)){
+    } else if (QFile::exists(_sFileNameOrDirectory)) {
         QString sBaseName = QFileInfo(_sFileNameOrDirectory).baseName();
         g_mapFileNames.insert(sBaseName, _sFileNameOrDirectory);
         _handleRulesFile(&pYrCompiler, _sFileNameOrDirectory, sBaseName);
@@ -121,8 +120,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     //    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 
     yr_compiler_get_rules(pYrCompiler, &pRules);
-//    nTest = yr_rules_destroy(pRules);
-//    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
+    //    nTest = yr_rules_destroy(pRules);
+    //    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
 
     if (pRules) {
         XBinary::setPdStructTotal(pPdStruct, g_nFreeIndex, pRules->num_rules);
@@ -134,7 +133,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     //    _CrtMemState s1,s2,s3;
     //    _CrtMemCheckpoint( &s1 );
 
-    int nResult = yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
+    int nResult =
+        yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
     //    _CrtMemCheckpoint( &s2 );
     //    if ( _CrtMemDifference( &s3, &s1, &s2) )
     //       _CrtMemDumpStatistics( &s3 );
