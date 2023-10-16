@@ -12,33 +12,43 @@ include_directories(${PROJECT_SOURCE_DIR}/src/)
 include_directories(${PROJECT_SOURCE_DIR}/src/include/)
 
 if(WIN32)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   add_definitions(-DUSE_WINDOWS_PROC)
+  add_definitions(-DYR_BUILDING_STATIC_LIB)
+  add_definitions(-DBUCKETS_128)
+  add_definitions(-DCHECKSUM_1B)
 endif()
 
 if(LINUX)
   add_definitions(-DUSE_LINUX_PROC)
   add_definitions(-D_GNU_SOURCE)
+  add_definitions(-DYR_BUILDING_STATIC_LIB)
+  add_definitions(-DBUCKETS_128)
+  add_definitions(-DCHECKSUM_1B)
 endif()
 
 if(APPLE)
   add_definitions(-DUSE_MACH_PROC)
+  add_definitions(-DYR_BUILDING_STATIC_LIB)
+  add_definitions(-DBUCKETS_128)
+  add_definitions(-DCHECKSUM_1B)
 endif()
 
 if(FREEBSD)
   add_definitions(-DUSE_FREEBSD_PROC)
   add_definitions(-D_GNU_SOURCE)
+  add_definitions(-DYR_BUILDING_STATIC_LIB)
+  add_definitions(-DBUCKETS_128)
+  add_definitions(-DCHECKSUM_1B)
 endif()
 
 if(OPENBSD)
   add_definitions(-DUSE_OPENBSD_PROC)
   add_definitions(-D_GNU_SOURCE)
+  add_definitions(-DYR_BUILDING_STATIC_LIB)
+  add_definitions(-DBUCKETS_128)
+  add_definitions(-DCHECKSUM_1B)
 endif()
-
-add_definitions(
-    -DDOTNET_MODULE
-    -DYR_BUILDING_STATIC_LIB
-    -DBUCKETS_256
-    )
 
 add_library(yara STATIC
 ${PROJECT_SOURCE_DIR}/src/ahocorasick.c
