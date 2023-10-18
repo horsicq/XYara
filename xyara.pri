@@ -18,3 +18,7 @@ SOURCES += \
     XCONFIG += xbinary
     include($$PWD/../Formats/xbinary.pri)
 }
+
+win32-msvc* {
+    LIBS += Advapi32.lib
+}

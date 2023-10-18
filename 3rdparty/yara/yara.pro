@@ -29,12 +29,6 @@ DEPENDPATH += $$PWD/src/include
 
 include(../../build.pri)
 
-CONFIG(debug, debug|release) {
-    TARGET = yarad
-} else {
-    TARGET = yara
-}
-
 #DEFINES += "OPENSSL_NO_DEPRECATED_3_0"
 #DEFINES += "HAVE_LIBCRYPTO"
 
@@ -105,32 +99,16 @@ openbsd {
 
 TARGETLIB_PATH = $$PWD
 
-win32-g++ {
-    contains(QT_ARCH, i386) {
-        DESTDIR=$${TARGETLIB_PATH}/libs/win32-g++
-    } else {
-        DESTDIR=$${TARGETLIB_PATH}/libs/win64-g++
-    }
-}
-win32-msvc* {
-    contains(QMAKE_TARGET.arch, x86_64) {
-        DESTDIR=$${TARGETLIB_PATH}/libs/win64-msvc
-    } else {
-        DESTDIR=$${TARGETLIB_PATH}/libs/win32-msvc
-    }
+win32{
+    TARGET = yara-win-$${QT_ARCH}
 }
 unix:!macx {
-    BITSIZE = $$system(getconf LONG_BIT)
-    if (contains(BITSIZE, 64)) {
-        DESTDIR=$${TARGETLIB_PATH}/libs/lin64
-    }
-    if (contains(BITSIZE, 32)) {
-        DESTDIR=$${TARGETLIB_PATH}/libs/lin32
-    }
+    TARGET = yara-unix-$${QT_ARCH}
 }
 unix:macx {
-    DESTDIR=$${TARGETLIB_PATH}/libs/mac
+    TARGET = yara-macos-$${QT_ARCH}
 }
+
 # hash -> _hash
 SOURCES += \
     src/ahocorasick.c \
