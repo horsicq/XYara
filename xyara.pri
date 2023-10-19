@@ -22,3 +22,6 @@ SOURCES += \
 win32-msvc* {
     LIBS += Advapi32.lib
 }
+
+DISTFILES += \
+    $$PWD/xyara.cmake
