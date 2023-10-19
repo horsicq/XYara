@@ -120,8 +120,6 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     //    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
 
     yr_compiler_get_rules(pYrCompiler, &pRules);
-    //    nTest = yr_rules_destroy(pRules);
-    //    nTest = yr_compiler_get_rules(pYrCompiler, &pRules);
 
     if (pRules) {
         XBinary::setPdStructTotal(pPdStruct, g_nFreeIndex, pRules->num_rules);
@@ -135,6 +133,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
 
     int nResult =
         yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
+
+    Q_UNUSED(nResult)
     //    _CrtMemCheckpoint( &s2 );
     //    if ( _CrtMemDifference( &s3, &s1, &s2) )
     //       _CrtMemDumpStatistics( &s3 );
