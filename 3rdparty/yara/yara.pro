@@ -98,6 +98,7 @@ openbsd {
 }
 
 TARGETLIB_PATH = $$PWD
+DESTDIR=$${TARGETLIB_PATH}/libs
 
 win32{
     TARGET = yara-win-$${QT_ARCH}
