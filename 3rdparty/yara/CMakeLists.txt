@@ -19,7 +19,7 @@ if(WIN32)
   add_definitions(-DCHECKSUM_1B)
 endif()
 
-if(LINUX)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   add_definitions(-DHAVE_CLOCK_GETTIME)
   add_definitions(-DHAVE_STDBOOL_H)
   add_definitions(-DHAVE_TIMEGM)
@@ -43,7 +43,7 @@ if(APPLE)
   add_definitions(-DHAVE_STRLCPY)
 endif()
 
-if(FREEBSD)
+if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
   add_definitions(-DUSE_FREEBSD_PROC)
   add_definitions(-DHAVE_CLOCK_GETTIME)
   add_definitions(-DHAVE_STDBOOL_H)
@@ -56,7 +56,7 @@ if(FREEBSD)
   add_definitions(-DHAVE_STRLCPY)
 endif()
 
-if(OPENBSD)
+if(CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
   add_definitions(-DUSE_OPENBSD_PROC)
   add_definitions(-DHAVE_CLOCK_GETTIME)
   add_definitions(-DHAVE_STDBOOL_H)
@@ -128,10 +128,20 @@ if(WIN32)
   )
 endif()
 
-if(UNIX AND NOT APPLE)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_sources(yara PRIVATE
   ${PROJECT_SOURCE_DIR}/src/proc/linux.c
+  )
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+  target_sources(yara PRIVATE
   ${PROJECT_SOURCE_DIR}/src/proc/freebsd.c
+  )
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
+  target_sources(yara PRIVATE
   ${PROJECT_SOURCE_DIR}/src/proc/openbsd.c
   )
 endif()
