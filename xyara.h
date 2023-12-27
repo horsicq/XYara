@@ -25,6 +25,15 @@
 #include <QThread>
 // #include <crtdbg.h>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#else
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 class XYara : public QObject {
     Q_OBJECT
 public:
