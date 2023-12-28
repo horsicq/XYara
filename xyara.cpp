@@ -143,7 +143,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
             FILE_ATTRIBUTE_NORMAL ,
             NULL);
 #else
-    int hFile = open64(sFileName.toUtf8().data(), O_RDONLY);
+    int hFile = open(sFileName.toUtf8().data(), O_RDONLY);
 #endif
     int nResult =
         yr_rules_scan_fd(pRules, hFile, SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
