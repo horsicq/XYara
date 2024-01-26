@@ -134,19 +134,11 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
 //    int nResult =
 //        yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
 #if defined(_WIN32) || defined(__CYGWIN__)
-    HANDLE hFile = CreateFileW(
-            (LPCWSTR)(sFileName.utf16()),
-            GENERIC_READ,
-            0,
-            NULL,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL ,
-            NULL);
+    HANDLE hFile = CreateFileW((LPCWSTR)(sFileName.utf16()), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 #else
     int hFile = open(sFileName.toUtf8().data(), O_RDONLY);
 #endif
-    int nResult =
-        yr_rules_scan_fd(pRules, hFile, SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
+    int nResult = yr_rules_scan_fd(pRules, hFile, SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
 
 #if defined(_WIN32) || defined(__CYGWIN__)
     CloseHandle(hFile);
