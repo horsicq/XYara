@@ -54,7 +54,7 @@ bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileNam
     pFileNameW[sFileName.length()] = 0;
     pFile = _wfopen(pFileNameW, L"r");
 #else
-    pFile = fopen(sFileName.toUtf8().data(), "r");
+    pFile = fopen(sFileName.toUtf8().data(), "r"); // TODO fopen_s
 #endif
     if (pFile != NULL) {
         int nResult = yr_compiler_add_file(*ppYrCompiler, pFile, sInfo.toUtf8().data(), sFileName.toUtf8().data());
