@@ -133,10 +133,12 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
 
 //    int nResult =
 //        yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
+
+    QString _sFileName = sFileName;
 #if defined(_WIN32) || defined(__CYGWIN__)
-    HANDLE hFile = CreateFileW((LPCWSTR)(sFileName.utf16()), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE hFile = CreateFileW((LPCWSTR)(_sFileName.utf16()), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 #else
-    int hFile = open(sFileName.toUtf8().data(), O_RDONLY);
+    int hFile = open(_sFileName.toUtf8().data(), O_RDONLY);
 #endif
     int nResult = yr_rules_scan_fd(pRules, hFile, SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
 
@@ -154,7 +156,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     yr_rules_destroy(pRules);
     yr_compiler_destroy(pYrCompiler);
 
-    g_scanResult.sFileName = sFileName;
+    g_scanResult.sFileName = _sFileName;
     g_scanResult.nScanTime = scanTimer.elapsed();
 
     XBinary::setPdStructFinished(g_pPdStruct, g_nFreeIndex);
