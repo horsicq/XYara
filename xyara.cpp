@@ -54,7 +54,7 @@ bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileNam
     pFileNameW[sFileName.length()] = 0;
     pFile = _wfopen(pFileNameW, L"r");
 #else
-    pFile = fopen(sFileName.toUtf8().data(), "r"); // TODO fopen_s
+    pFile = fopen(sFileName.toUtf8().data(), "r");  // TODO fopen_s
 #endif
     if (pFile != NULL) {
         int nResult = yr_compiler_add_file(*ppYrCompiler, pFile, sInfo.toUtf8().data(), sFileName.toUtf8().data());
@@ -131,8 +131,9 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     //    _CrtMemState s1,s2,s3;
     //    _CrtMemCheckpoint( &s1 );
 
-//    int nResult =
-//        yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this, 0);
+    //    int nResult =
+    //        yr_rules_scan_file(pRules, sFileName.toUtf8().data(), SCAN_FLAGS_REPORT_RULES_MATCHING | SCAN_FLAGS_REPORT_RULES_NOT_MATCHING, &XYara::_callbackScan, this,
+    //        0);
 
     QString _sFileName = sFileName;
 #if defined(_WIN32) || defined(__CYGWIN__)
