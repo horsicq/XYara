@@ -87,7 +87,7 @@ public slots:
     void process();
 
 private:
-    bool _handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, QString sInfo);
+    bool _handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, const QString &sInfo);
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
 

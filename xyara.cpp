@@ -42,7 +42,7 @@ void XYara::finalize()
     yr_finalize();
 }
 
-bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, QString sInfo)
+bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, const QString &sInfo)
 {
     bool bResult = false;
 
