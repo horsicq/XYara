@@ -77,6 +77,7 @@ public:
     static void finalize();
 
     SCAN_RESULT scanFile(const QString &sFileName, const QString &sFileNameOrDirectory, XBinary::PDSTRUCT *pPdStruct);
+    // TODO scan device!
     void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
     void setData(const QString &sFileName, const QString &sRulesPath);
     SCAN_RESULT getScanResult();
