@@ -6,6 +6,7 @@
 */
 
 import "pe"
+import "math"
 
 rule Obfuscated__AntiILDASM
 {

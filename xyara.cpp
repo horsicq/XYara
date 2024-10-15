@@ -59,6 +59,7 @@ bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileNam
     if (pFile != NULL) {
         int nResult = yr_compiler_add_file(*ppYrCompiler, pFile, sInfo.toUtf8().data(), sFileName.toUtf8().data());
 
+        // TODO handle error
         if (nResult == 0) {
             bResult = true;
         }
@@ -107,11 +108,11 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
         qint32 nNumberOfFiles = listFiles.count();
 
         for (qint32 i = 0; i < nNumberOfFiles; i++) {
-            QString sFileName = _sFileNameOrDirectory + QDir::separator() + listFiles.at(i);
-            QString sBaseName = QFileInfo(sFileName).baseName();
+            QString _sFileName = _sFileNameOrDirectory + QDir::separator() + listFiles.at(i);
+            QString _sBaseName = QFileInfo(_sFileName).baseName();
 
-            g_mapFileNames.insert(sBaseName, sFileName);
-            _handleRulesFile(&pYrCompiler, sFileName, sBaseName);
+            g_mapFileNames.insert(_sBaseName, _sFileName);
+            _handleRulesFile(&pYrCompiler, _sFileName, _sBaseName);
         }
     } else if (QFile::exists(_sFileNameOrDirectory)) {
         QString sBaseName = QFileInfo(_sFileNameOrDirectory).baseName();
