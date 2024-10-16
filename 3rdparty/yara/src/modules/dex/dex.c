@@ -328,6 +328,8 @@ begin_declarations
     declare_string("class_name");
     declare_string("name");
     declare_string("proto");
+    declare_integer("static");
+    declare_integer("instance");
     declare_integer("field_idx_diff");
     declare_integer("access_flags");
   end_struct_array("field")
@@ -358,50 +360,62 @@ begin_declarations
       declare_integer("debug_info_off");
       declare_integer("insns_size");
       declare_string("insns");
-      declare_integer("padding");
-      begin_struct("tries")
-      end_struct("tries");
-      begin_struct_array("handlers")
-      end_struct_array("handlers");
     end_struct("code_item")
   end_struct_array("method")
 end_declarations
 
 // https://android.googlesource.com/platform/dalvik/+/android-4.4.2_r2/libdex/Leb128.cpp
 
-static int32_t read_uleb128(const uint8_t* pStream, uint32_t* size)
+static int32_t read_uleb128_bounded(
+    const uint8_t* pStream,
+    const uint8_t* pStreamEnd,
+    uint32_t* size,
+    bool* error)
 {
   const uint8_t* ptr = pStream;
+  int32_t result = 0;
 
-  int32_t result = *(ptr++);
+  *error = false;
+  if (ptr == pStreamEnd)
+    goto error;
+
+  result = *(ptr++);
   *size = *size + 1;
 
   if (result > 0x7f)
   {
+    if (ptr == pStreamEnd)
+      goto error;
     int cur = *(ptr++);
     *size = *size + 1;
     result = (result & 0x7f) | ((cur & 0x7f) << 7);
 
     if (cur > 0x7f)
     {
+      if (ptr == pStreamEnd)
+        goto error;
       cur = *(ptr++);
       *size = *size + 1;
       result |= (cur & 0x7f) << 14;
 
       if (cur > 0x7f)
       {
+        if (ptr == pStreamEnd)
+          goto error;
         cur = *(ptr++);
         *size = *size + 1;
         result |= (cur & 0x7f) << 21;
 
         if (cur > 0x7f)
         {
+          if (ptr == pStreamEnd)
+            goto error;
           /*
            * Note: We don't check to see if cur is out of
            * range here, meaning we tolerate garbage in the
            * high four-order bits.
            */
-          cur = *(ptr++);
+          cur = *ptr;
           *size = *size + 1;
           result |= cur << 28;
         }
@@ -409,6 +423,10 @@ static int32_t read_uleb128(const uint8_t* pStream, uint32_t* size)
     }
   }
 
+  return result;
+
+error:
+  *error = true;
   return result;
 }
 
@@ -471,19 +489,13 @@ dex_header_t* dex_get_header(const uint8_t* data, size_t data_size)
 void dex_parse_header(dex_header_t* dex_header, YR_OBJECT* module_object)
 {
   yr_set_sized_string(
-      (char*) dex_header->magic,
-      strnlen((char*) dex_header->magic, 8 * sizeof(char)),
-      module_object,
-      "header.magic");
+      (char*) dex_header->magic, 8, module_object, "header.magic");
 
   yr_set_integer(
       yr_le32toh(dex_header->checksum), module_object, "header.checksum");
 
   yr_set_sized_string(
-      (char*) dex_header->signature,
-      strnlen((char*) dex_header->signature, 20 * sizeof(char)),
-      module_object,
-      "header.signature");
+      (char*) dex_header->signature, 20, module_object, "header.signature");
 
   yr_set_integer(
       yr_le32toh(dex_header->file_size), module_object, "header.file_size");
@@ -564,18 +576,26 @@ uint32_t load_encoded_field(
   printf("[DEX] Parse encoded field start_offset:0x%zx\n", start_offset);
 #endif
 
+  const uint8_t* data_cur_start = dex->data + start_offset;
   if (!fits_in_dex(dex, dex->data + start_offset, sizeof(uint32_t) * 2))
     return 0;
 
+  const uint8_t* data_end = dex->data + dex->data_size;
   uint32_t current_size = 0;
-
+  bool error = false;
   encoded_field_t encoded_field;
 
-  encoded_field.field_idx_diff = (uint32_t) read_uleb128(
-      (dex->data + start_offset + current_size), &current_size);
+  encoded_field.field_idx_diff =
+      (uint32_t) read_uleb128_bounded((dex->data + start_offset + current_size),
+                                      data_end, &current_size, &error);
+  if (error)
+    return 0;
 
-  encoded_field.access_flags = (uint32_t) read_uleb128(
-      (dex->data + start_offset + current_size), &current_size);
+  encoded_field.access_flags =
+      (uint32_t) read_uleb128_bounded((dex->data + start_offset + current_size),
+                                      data_end, &current_size, &error);
+  if (error)
+    return 0;
 
   yr_set_integer(
       encoded_field.field_idx_diff,
@@ -700,20 +720,29 @@ uint32_t load_encoded_method(
   printf("[DEX] Parse encoded method start_offset:0x%zx\n", start_offset);
 #endif
 
-  if (!fits_in_dex(dex, dex->data + start_offset, sizeof(uint32_t) * 3))
+  const uint8_t* data_cur_start = dex->data + start_offset;
+  if (!fits_in_dex(dex, data_cur_start, sizeof(uint32_t) * 3))
     return 0;
 
+  const uint8_t* data_end = dex->data + dex->data_size;
   uint32_t current_size = 0;
+  bool error = false;
   encoded_method_t encoded_method;
 
-  encoded_method.method_idx_diff = (uint32_t) read_uleb128(
-      (dex->data + start_offset + current_size), &current_size);
+  encoded_method.method_idx_diff = (uint32_t) read_uleb128_bounded(
+      (data_cur_start + current_size), data_end, &current_size, &error);
+  if (error)
+    return 0;
 
-  encoded_method.access_flags = (uint32_t) read_uleb128(
-      (dex->data + start_offset + current_size), &current_size);
+  encoded_method.access_flags = (uint32_t) read_uleb128_bounded(
+      (data_cur_start + current_size), data_end, &current_size, &error);
+  if (error)
+    return 0;
 
-  encoded_method.code_off = (uint32_t) read_uleb128(
-      (dex->data + start_offset + current_size), &current_size);
+  encoded_method.code_off = (uint32_t) read_uleb128_bounded(
+      (data_cur_start + current_size), data_end, &current_size, &error);
+  if (error)
+    return 0;
 
   yr_set_integer(
       encoded_method.method_idx_diff,
@@ -909,6 +938,8 @@ void dex_parse(DEX* dex, uint64_t base_address)
   uint32_t index_encoded_method = 0;
   uint32_t index_encoded_field = 0;
 
+  const uint8_t* data_end = dex->data + dex->data_size;
+
   if (!struct_fits_in_dex(dex, dex->data, dex_header_t))
     return;
 
@@ -944,9 +975,12 @@ void dex_parse(DEX* dex, uint64_t base_address)
             sizeof(uint32_t)))
       continue;
 
-    uint32_t value = (uint32_t) read_uleb128(
+    bool error = false;
+    uint32_t value = (uint32_t) read_uleb128_bounded(
         (dex->data + yr_le32toh(string_id_item->string_data_offset)),
-        &uleb128_size);
+        data_end, &uleb128_size, &error);
+    if (error)
+      continue;
 
 #ifdef DEBUG_DEX_MODULE
     printf("[DEX] STRING ID item size:0x%x\n", value);
@@ -1234,25 +1268,34 @@ void dex_parse(DEX* dex, uint64_t base_address)
         return;
 
       uleb128_size = 0;
+      bool error = false;
 
-      class_data_item.static_fields_size = (uint32_t) read_uleb128(
+      class_data_item.static_fields_size = (uint32_t) read_uleb128_bounded(
           (dex->data + yr_le32toh(class_id_item->class_data_offset)),
-          &uleb128_size);
+          data_end, &uleb128_size, &error);
+      if (error)
+        return;
 
-      class_data_item.instance_fields_size = (uint32_t) read_uleb128(
+      class_data_item.instance_fields_size = (uint32_t) read_uleb128_bounded(
           (dex->data + yr_le32toh(class_id_item->class_data_offset) +
            uleb128_size),
-          &uleb128_size);
+          data_end, &uleb128_size, &error);
+      if (error)
+        return;
 
-      class_data_item.direct_methods_size = (uint32_t) read_uleb128(
+      class_data_item.direct_methods_size = (uint32_t) read_uleb128_bounded(
           (dex->data + yr_le32toh(class_id_item->class_data_offset) +
            uleb128_size),
-          &uleb128_size);
+          data_end, &uleb128_size, &error);
+      if (error)
+        return;
 
-      class_data_item.virtual_methods_size = (uint32_t) read_uleb128(
+      class_data_item.virtual_methods_size = (uint32_t) read_uleb128_bounded(
           (dex->data + yr_le32toh(class_id_item->class_data_offset) +
            uleb128_size),
-          &uleb128_size);
+          data_end, &uleb128_size, &error);
+      if (error)
+        return;
 
       yr_set_integer(
           class_data_item.static_fields_size,
@@ -1409,11 +1452,16 @@ int module_load(
 
   dex_header_t* dex_header;
 
-  yr_set_string(DEX_FILE_MAGIC_035, module_object, "DEX_FILE_MAGIC_035");
-  yr_set_string(DEX_FILE_MAGIC_036, module_object, "DEX_FILE_MAGIC_036");
-  yr_set_string(DEX_FILE_MAGIC_037, module_object, "DEX_FILE_MAGIC_037");
-  yr_set_string(DEX_FILE_MAGIC_038, module_object, "DEX_FILE_MAGIC_038");
-  yr_set_string(DEX_FILE_MAGIC_039, module_object, "DEX_FILE_MAGIC_039");
+  yr_set_sized_string(
+      DEX_FILE_MAGIC_035, 8, module_object, "DEX_FILE_MAGIC_035");
+  yr_set_sized_string(
+      DEX_FILE_MAGIC_036, 8, module_object, "DEX_FILE_MAGIC_036");
+  yr_set_sized_string(
+      DEX_FILE_MAGIC_037, 8, module_object, "DEX_FILE_MAGIC_037");
+  yr_set_sized_string(
+      DEX_FILE_MAGIC_038, 8, module_object, "DEX_FILE_MAGIC_038");
+  yr_set_sized_string(
+      DEX_FILE_MAGIC_039, 8, module_object, "DEX_FILE_MAGIC_039");
 
   yr_set_integer(0x12345678, module_object, "ENDIAN_CONSTANT");
   yr_set_integer(0x78563412, module_object, "REVERSE_ENDIAN_CONSTANT");
@@ -1462,7 +1510,7 @@ int module_load(
 
   foreach_memory_block(iterator, block)
   {
-    const uint8_t* block_data = block->fetch_data(block);
+    const uint8_t* block_data = yr_fetch_block_data(block);
 
     if (block_data == NULL)
       continue;

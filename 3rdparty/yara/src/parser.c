@@ -216,6 +216,7 @@ int yr_parser_emit_pushes_for_strings(
 
         string->flags |= STRING_FLAGS_REFERENCED;
         string->flags &= ~STRING_FLAGS_FIXED_OFFSET;
+        string->flags &= ~STRING_FLAGS_SINGLE_MATCH;
         matching++;
       }
     }
@@ -475,6 +476,11 @@ static int _yr_parser_write_string(
   FAIL_ON_ERROR(_yr_compiler_store_string(compiler, identifier, &ref));
 
   string->identifier = (const char*) yr_arena_ref_to_ptr(compiler->arena, &ref);
+  string->rule_idx = compiler->current_rule_idx;
+  string->idx = compiler->current_string_idx;
+  string->fixed_offset = YR_UNDEFINED;
+
+  compiler->current_string_idx++;
 
   if (modifier.flags & STRING_FLAGS_HEXADECIMAL ||
       modifier.flags & STRING_FLAGS_REGEXP ||
@@ -501,19 +507,30 @@ static int _yr_parser_write_string(
         literal_string->length + 1,  // +1 to include terminating NULL
         &ref);
 
+    if (result != ERROR_SUCCESS)
+      goto cleanup;
+
     string->length = (uint32_t) literal_string->length;
     string->string = (uint8_t*) yr_arena_ref_to_ptr(compiler->arena, &ref);
 
-    if (result == ERROR_SUCCESS)
-    {
-      result = yr_atoms_extract_from_string(
-          &compiler->atoms_config,
-          (uint8_t*) literal_string->c_string,
-          (int32_t) literal_string->length,
-          modifier,
-          &atom_list,
-          min_atom_quality);
-    }
+    if (modifier.flags & STRING_FLAGS_WIDE)
+      max_string_len = string->length * 2;
+    else
+      max_string_len = string->length;
+
+    if (max_string_len <= YR_MAX_ATOM_LENGTH)
+      modifier.flags |= STRING_FLAGS_FITS_IN_ATOM;
+
+    result = yr_atoms_extract_from_string(
+        &compiler->atoms_config,
+        (uint8_t*) literal_string->c_string,
+        (int32_t) literal_string->length,
+        modifier,
+        &atom_list,
+        min_atom_quality);
+
+    if (result != ERROR_SUCCESS)
+      goto cleanup;
   }
   else
   {
@@ -523,48 +540,65 @@ static int _yr_parser_write_string(
     // variable-length portions.
     modifier.flags &= ~STRING_FLAGS_FIXED_OFFSET;
 
+    // Save the position where the RE forward code starts for later reference.
+    yr_arena_off_t forward_code_start = yr_arena_get_current_offset(
+        compiler->arena, YR_RE_CODE_SECTION);
+
     // Emit forwards code
     result = yr_re_ast_emit_code(re_ast, compiler->arena, false);
 
-    // Emit backwards code
-    if (result == ERROR_SUCCESS)
-      result = yr_re_ast_emit_code(re_ast, compiler->arena, true);
+    if (result != ERROR_SUCCESS)
+      goto cleanup;
 
-    if (result == ERROR_SUCCESS)
-      result = yr_atoms_extract_from_re(
-          &compiler->atoms_config,
-          re_ast,
-          modifier,
-          &atom_list,
-          min_atom_quality);
+    // Emit backwards code
+    result = yr_re_ast_emit_code(re_ast, compiler->arena, true);
+
+    if (result != ERROR_SUCCESS)
+      goto cleanup;
+
+    // Extract atoms from the regular expression.
+    result = yr_atoms_extract_from_re(
+        &compiler->atoms_config,
+        re_ast,
+        modifier,
+        &atom_list,
+        min_atom_quality);
+
+    if (result != ERROR_SUCCESS)
+      goto cleanup;
+
+    // If no atom was extracted let's add a zero-length atom.
+    if (atom_list == NULL)
+    {
+      atom_list = (YR_ATOM_LIST_ITEM*) yr_malloc(sizeof(YR_ATOM_LIST_ITEM));
+
+      if (atom_list == NULL)
+      {
+        result = ERROR_INSUFFICIENT_MEMORY;
+        goto cleanup;
+      }
+
+      atom_list->atom.length = 0;
+      atom_list->backtrack = 0;
+      atom_list->backward_code_ref = YR_ARENA_NULL_REF;
+      atom_list->next = NULL;
+
+      yr_arena_ptr_to_ref(
+          compiler->arena,
+          yr_arena_get_ptr(
+              compiler->arena, YR_RE_CODE_SECTION, forward_code_start),
+          &(atom_list->forward_code_ref));
+    }
   }
 
   string->flags = modifier.flags;
-  string->rule_idx = compiler->current_rule_idx;
-  string->idx = compiler->current_string_idx;
-  string->fixed_offset = YR_UNDEFINED;
 
-  if (result == ERROR_SUCCESS)
-  {
-    // Add the string to Aho-Corasick automaton.
-    result = yr_ac_add_string(
-        compiler->automaton,
-        string,
-        compiler->current_string_idx,
-        atom_list,
-        compiler->arena);
-  }
+  // Add the string to Aho-Corasick automaton.
+  result = yr_ac_add_string(
+      compiler->automaton, string, string->idx, atom_list, compiler->arena);
 
-  if (modifier.flags & STRING_FLAGS_LITERAL)
-  {
-    if (modifier.flags & STRING_FLAGS_WIDE)
-      max_string_len = string->length * 2;
-    else
-      max_string_len = string->length;
-
-    if (max_string_len <= YR_MAX_ATOM_LENGTH)
-      string->flags |= STRING_FLAGS_FITS_IN_ATOM;
-  }
+  if (result != ERROR_SUCCESS)
+    goto cleanup;
 
   atom = atom_list;
   c = 0;
@@ -577,8 +611,7 @@ static int _yr_parser_write_string(
 
   (*num_atom) += c;
 
-  compiler->current_string_idx++;
-
+cleanup:
   if (free_literal)
     yr_free(literal_string);
 
@@ -747,23 +780,35 @@ int yr_parser_reduce_string_declaration(
     if (modifier.flags & STRING_FLAGS_HEXADECIMAL)
       result = yr_re_parse_hex(str->c_string, &re_ast, &re_error);
     else if (modifier.flags & STRING_FLAGS_REGEXP)
-      result = yr_re_parse(str->c_string, &re_ast, &re_error);
+    {
+      int flags = RE_PARSER_FLAG_NONE;
+      if (compiler->strict_escape)
+        flags |= RE_PARSER_FLAG_ENABLE_STRICT_ESCAPE_SEQUENCES;
+      result = yr_re_parse(str->c_string, &re_ast, &re_error, flags);
+    }
     else
       result = yr_base64_ast_from_string(str, modifier, &re_ast, &re_error);
 
     if (result != ERROR_SUCCESS)
     {
-      snprintf(
-          message,
-          sizeof(message),
-          "invalid %s \"%s\": %s",
-          (modifier.flags & STRING_FLAGS_HEXADECIMAL) ? "hex string"
-                                                      : "regular expression",
-          identifier,
-          re_error.message);
+      if (result == ERROR_UNKNOWN_ESCAPE_SEQUENCE)
+      {
+        yywarning(yyscanner, "unknown escape sequence");
+      }
+      else
+      {
+        snprintf(
+            message,
+            sizeof(message),
+            "invalid %s \"%s\": %s",
+            (modifier.flags & STRING_FLAGS_HEXADECIMAL) ? "hex string"
+                                                        : "regular expression",
+            identifier,
+            re_error.message);
 
-      yr_compiler_set_error_extra_info(compiler, message);
-      goto _exit;
+        yr_compiler_set_error_extra_info(compiler, message);
+        goto _exit;
+      }
     }
 
     if (re_ast->flags & RE_FLAGS_FAST_REGEXP)
@@ -1070,11 +1115,24 @@ int yr_parser_reduce_rule_declaration_phase_2(
     // Only the heading fragment in a chain of strings (the one with
     // chained_to == NULL) must be referenced. All other fragments
     // are never marked as referenced.
+    //
+    // Any string identifier that starts with '_' can be unreferenced. Anonymous
+    // strings must always be referenced.
 
-    if (!STRING_IS_REFERENCED(string) && string->chained_to == NULL)
+    if (!STRING_IS_REFERENCED(string) && string->chained_to == NULL &&
+        (STRING_IS_ANONYMOUS(string) ||
+         (!STRING_IS_ANONYMOUS(string) && string->identifier[1] != '_')))
     {
       yr_compiler_set_error_extra_info(
           compiler, string->identifier) return ERROR_UNREFERENCED_STRING;
+    }
+
+    // If a string is unreferenced we need to unset the FIXED_OFFSET flag so
+    // that it will match anywhere.
+    if (!STRING_IS_REFERENCED(string) && string->chained_to == NULL &&
+        STRING_IS_FIXED_OFFSET(string))
+    {
+      string->flags &= ~STRING_FLAGS_FIXED_OFFSET;
     }
 
     strings_in_rule++;

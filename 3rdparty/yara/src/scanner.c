@@ -172,17 +172,16 @@ static int _yr_scanner_scan_mem_block(
     }
   }
 
-  if (rule != NULL &&
-      scanner->matches->count >= YR_SLOW_STRING_MATCHES &&
+  if (rule != NULL && scanner->matches->count >= YR_SLOW_STRING_MATCHES &&
       scanner->matches->count < YR_MAX_STRING_MATCHES)
   {
     if (rule != NULL && report_string != NULL)
     {
       result = scanner->callback(
-        scanner,
-        CALLBACK_MSG_TOO_SLOW_SCANNING,
-        (void*) report_string,
-        scanner->user_data);
+          scanner,
+          CALLBACK_MSG_TOO_SLOW_SCANNING,
+          (void*) report_string,
+          scanner->user_data);
       if (result != CALLBACK_CONTINUE)
       {
         result = ERROR_TOO_SLOW_SCANNING;
@@ -214,7 +213,7 @@ static void _yr_scanner_clean_matches(YR_SCANNER* scanner)
       sizeof(YR_BITMASK) * YR_BITMASK_SIZE(scanner->rules->num_rules));
 
   memset(
-      scanner->rule_evaluate_condition_flags,
+      scanner->required_eval,
       0,
       sizeof(YR_BITMASK) * YR_BITMASK_SIZE(scanner->rules->num_rules));
 
@@ -264,7 +263,7 @@ YR_API int yr_scanner_create(YR_RULES* rules, YR_SCANNER** scanner)
   new_scanner->rule_matches_flags = (YR_BITMASK*) yr_calloc(
       sizeof(YR_BITMASK), YR_BITMASK_SIZE(rules->num_rules));
 
-  new_scanner->rule_evaluate_condition_flags = (YR_BITMASK*) yr_calloc(
+  new_scanner->required_eval = (YR_BITMASK*) yr_calloc(
       sizeof(YR_BITMASK), YR_BITMASK_SIZE(rules->num_rules));
 
   new_scanner->ns_unsatisfied_flags = (YR_BITMASK*) yr_calloc(
@@ -280,11 +279,11 @@ YR_API int yr_scanner_create(YR_RULES* rules, YR_SCANNER** scanner)
       rules->num_strings, sizeof(YR_MATCHES));
 
   if (new_scanner->rule_matches_flags == NULL ||
-      new_scanner->rule_evaluate_condition_flags == NULL ||
+      new_scanner->required_eval == NULL ||
       new_scanner->ns_unsatisfied_flags == NULL ||
       new_scanner->strings_temp_disabled == NULL ||
-      new_scanner->matches == NULL ||  //
-      new_scanner->unconfirmed_matches == NULL)
+      (new_scanner->matches == NULL && rules->num_strings > 0) ||
+      (new_scanner->unconfirmed_matches == NULL && rules->num_strings > 0))
   {
     yr_scanner_destroy(new_scanner);
     return ERROR_INSUFFICIENT_MEMORY;
@@ -294,7 +293,7 @@ YR_API int yr_scanner_create(YR_RULES* rules, YR_SCANNER** scanner)
   new_scanner->profiling_info = yr_calloc(
       rules->num_rules, sizeof(YR_PROFILING_INFO));
 
-  if (new_scanner->profiling_info == NULL)
+  if (new_scanner->profiling_info == NULL && rules->num_rules > 0)
   {
     yr_scanner_destroy(new_scanner);
     return ERROR_INSUFFICIENT_MEMORY;
@@ -367,7 +366,7 @@ YR_API void yr_scanner_destroy(YR_SCANNER* scanner)
 
   yr_free(scanner->rule_matches_flags);
   yr_free(scanner->ns_unsatisfied_flags);
-  yr_free(scanner->rule_evaluate_condition_flags);
+  yr_free(scanner->required_eval);
   yr_free(scanner->strings_temp_disabled);
   yr_free(scanner->matches);
   yr_free(scanner->unconfirmed_matches);
@@ -508,31 +507,33 @@ YR_API int yr_scanner_scan_mem_blocks(
     if (result != ERROR_SUCCESS)
       goto _exit;
 
+    // Every rule that doesn't require a matching string must be evaluated
+    // regardless of whether a string matched or not.
     memcpy(
-      scanner->rule_evaluate_condition_flags,
-      scanner->rules->rule_evaluate_condition_flags,
-      sizeof(YR_BITMASK) * YR_BITMASK_SIZE(rules->num_rules));
+        scanner->required_eval,
+        scanner->rules->no_required_strings,
+        sizeof(YR_BITMASK) * YR_BITMASK_SIZE(rules->num_rules));
 
     yr_stopwatch_start(&scanner->stopwatch);
 
     block = iterator->first(iterator);
   }
 
-  while (block != NULL)
-  {
-    const uint8_t* data = block->fetch_data(block);
+  YR_TRYCATCH(
+      !(scanner->flags & SCAN_FLAGS_NO_TRYCATCH),
+      {
+        while (block != NULL)
+        {
+          const uint8_t* data = yr_fetch_block_data(block);
 
-    // fetch_data may fail and return NULL.
-    if (data == NULL)
-    {
-      block = iterator->next(iterator);
-      continue;
-    }
+          // fetch_data may fail and return NULL.
+          if (data == NULL)
+          {
+            block = iterator->next(iterator);
+            continue;
+          }
 
-    if (scanner->entry_point == YR_UNDEFINED)
-    {
-      YR_TRYCATCH(
-          !(scanner->flags & SCAN_FLAGS_NO_TRYCATCH),
+          if (scanner->entry_point == YR_UNDEFINED)
           {
             if (scanner->flags & SCAN_FLAGS_PROCESS_MEMORY)
               scanner->entry_point = yr_get_entry_point_address(
@@ -540,20 +541,19 @@ YR_API int yr_scanner_scan_mem_blocks(
             else
               scanner->entry_point = yr_get_entry_point_offset(
                   data, block->size);
-          },
-          {});
-    }
+          }
+          result = _yr_scanner_scan_mem_block(scanner, data, block);
+          if (result != ERROR_SUCCESS)
+          {
+            break;
+          }
+          block = iterator->next(iterator);
+        }
+      },
+      { result = ERROR_COULD_NOT_MAP_FILE; });
 
-    YR_TRYCATCH(
-        !(scanner->flags & SCAN_FLAGS_NO_TRYCATCH),
-        { result = _yr_scanner_scan_mem_block(scanner, data, block); },
-        { result = ERROR_COULD_NOT_MAP_FILE; });
-
-    if (result != ERROR_SUCCESS)
-      goto _exit;
-
-    block = iterator->next(iterator);
-  }
+  if (result != ERROR_SUCCESS)
+    goto _exit;
 
   result = iterator->last_error;
 
@@ -684,6 +684,24 @@ static const uint8_t* _yr_fetch_block_data(YR_MEMORY_BLOCK* block)
   return (const uint8_t*) block->context;
 }
 
+YR_API const uint8_t* yr_fetch_block_data(YR_MEMORY_BLOCK* block)
+{
+  const uint8_t* data = block->fetch_data(block);
+  if (data == NULL)
+  {
+    return NULL;
+  }
+  jumpinfo* info = (jumpinfo*) yr_thread_storage_get_value(
+      &yr_trycatch_trampoline_tls);
+  if (info == NULL)  // Not called from YR_TRYCATCH
+  {
+    return data;
+  }
+  info->memfault_from = (void*) data;
+  info->memfault_to = (void*) (data + block->size);
+  return data;
+}
+
 YR_API int yr_scanner_scan_mem(
     YR_SCANNER* scanner,
     const uint8_t* buffer,
@@ -712,15 +730,18 @@ YR_API int yr_scanner_scan_mem(
   iterator.file_size = _yr_get_file_size;
   iterator.last_error = ERROR_SUCCESS;
 
-  // Detect cases where every byte of input is checked for match and input size is bigger then 0.2 MB
-  if (scanner->rules->ac_match_table[YR_AC_ROOT_STATE] != 0 && buffer_size > YR_FILE_SIZE_THRESHOLD)
+  // Detect cases where every byte of input is checked for match and input size
+  // is bigger then 0.2 MB
+  if (scanner->rules->ac_match_table[YR_AC_ROOT_STATE] != 0 &&
+      buffer_size > YR_FILE_SIZE_THRESHOLD)
   {
-    YR_STRING* report_string = scanner->rules->ac_match_pool[YR_AC_ROOT_STATE].string;
+    YR_STRING* report_string =
+        scanner->rules->ac_match_pool[YR_AC_ROOT_STATE].string;
     result = scanner->callback(
-          scanner,
-          CALLBACK_MSG_TOO_SLOW_SCANNING,
-          (void*) report_string,
-          scanner->user_data);
+        scanner,
+        CALLBACK_MSG_TOO_SLOW_SCANNING,
+        (void*) report_string,
+        scanner->user_data);
     if (result != CALLBACK_CONTINUE)
       return ERROR_TOO_SLOW_SCANNING;
   }

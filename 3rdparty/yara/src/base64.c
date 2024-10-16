@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // is expected to trim the appropriate number of leading and trailing bytes.
 //
 // This is based upon the ideas at:
-// https://www.leeholmes.com/blog/2019/12/10/searching-for-content-in-base-64-strings-2/
+// https://www.leeholmes.com/searching-for-content-in-base-64-strings/
 //
 // The caller is responsible for freeing the returned string.
 //
@@ -361,7 +361,7 @@ int _yr_base64_create_regexp(
   // printf("%s\n", re_str);
 
   FAIL_ON_ERROR_WITH_CLEANUP(
-      yr_re_parse(re_str, re_ast, re_error), yr_free(re_str));
+      yr_re_parse(re_str, re_ast, re_error, RE_PARSER_FLAG_NONE), yr_free(re_str));
 
   yr_free(re_str);
 
@@ -375,7 +375,7 @@ int _yr_base64_create_regexp(
 // a result of the base64 encoding.
 //
 // This uses ideas from:
-// https://www.leeholmes.com/blog/2019/12/10/searching-for-content-in-base-64-strings-2/
+// https://www.leeholmes.com/searching-for-content-in-base-64-strings/
 //
 // This does not emit the code for the RE. A further call to yr_re_ast_emit_code
 // is required to get the code.

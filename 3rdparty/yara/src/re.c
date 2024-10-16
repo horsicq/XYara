@@ -214,9 +214,13 @@ void yr_re_ast_destroy(RE_AST* re_ast)
 // Parses a regexp but don't emit its code. A further call to
 // yr_re_ast_emit_code is required to get the code.
 //
-int yr_re_parse(const char* re_string, RE_AST** re_ast, RE_ERROR* error)
+int yr_re_parse(
+    const char* re_string,
+    RE_AST** re_ast,
+    RE_ERROR* error,
+    int flags)
 {
-  return yr_parse_re_string(re_string, re_ast, error);
+  return yr_parse_re_string(re_string, re_ast, error, flags);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -235,14 +239,18 @@ int yr_re_parse_hex(const char* hex_string, RE_AST** re_ast, RE_ERROR* error)
 int yr_re_compile(
     const char* re_string,
     int flags,
+    int parser_flags,
     YR_ARENA* arena,
     YR_ARENA_REF* ref,
     RE_ERROR* error)
 {
   RE_AST* re_ast;
   RE _re;
+  int result;
 
-  FAIL_ON_ERROR(yr_re_parse(re_string, &re_ast, error));
+  result = yr_re_parse(re_string, &re_ast, error, parser_flags);
+  if (result != ERROR_UNKNOWN_ESCAPE_SEQUENCE)
+    FAIL_ON_ERROR(result);
 
   _re.flags = flags;
 
@@ -255,7 +263,7 @@ int yr_re_compile(
 
   yr_re_ast_destroy(re_ast);
 
-  return ERROR_SUCCESS;
+  return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1721,6 +1729,9 @@ int yr_re_exec(
   int kill;
   int action;
 
+  bool prev_is_word_char = false;
+  bool input_is_word_char = false;
+
 #define ACTION_NONE      0
 #define ACTION_CONTINUE  1
 #define ACTION_KILL      2
@@ -1936,26 +1947,30 @@ int yr_re_exec(
 
       case RE_OPCODE_WORD_BOUNDARY:
       case RE_OPCODE_NON_WORD_BOUNDARY:
-
-        if (bytes_matched == 0 && input_backwards_size < character_size)
+        if (input - input_incr + character_size <=
+                input_data + input_forwards_size &&
+            input - input_incr >= input_data - input_backwards_size)
         {
-          match = true;
-        }
-        else if (bytes_matched >= max_bytes_matched)
-        {
-          match = true;
+          prev_is_word_char = _yr_re_is_word_char(
+              input - input_incr, character_size);
         }
         else
         {
-          assert(input < input_data + input_forwards_size);
-          assert(input >= input_data - input_backwards_size);
-
-          assert(input - input_incr < input_data + input_forwards_size);
-          assert(input - input_incr >= input_data - input_backwards_size);
-
-          match = _yr_re_is_word_char(input, character_size) !=
-                  _yr_re_is_word_char(input - input_incr, character_size);
+          prev_is_word_char = false;
         }
+
+        if (input + character_size <= input_data + input_forwards_size &&
+            input >= input_data - input_backwards_size)
+        {
+          input_is_word_char = _yr_re_is_word_char(input, character_size);
+        }
+        else
+        {
+          input_is_word_char = false;
+        }
+
+        match = (prev_is_word_char && !input_is_word_char) ||
+                (!prev_is_word_char && input_is_word_char);
 
         if (*ip == RE_OPCODE_NON_WORD_BOUNDARY)
           match = !match;
@@ -2322,15 +2337,15 @@ int yr_re_fast_exec(
           // an item that has a pointer lower or equal than next_input, but
           // whose next item have a pointer that is larger.
           while (insertion_point->next != NULL &&
-                 next_input >= insertion_point->next->input)
+                 insertion_point->next->input <= next_input)
           {
             insertion_point = insertion_point->next;
           }
 
-          // If the pointer at the insertion point is equal to next_input we
-          // don't need to insert next_input in the list as this input already
-          // exists.
-          if (next_input == insertion_point->input)
+          // If the input already exists for the next round, we don't need to
+          // insert it.
+          if (insertion_point->round == round + 1 &&
+              insertion_point->input == next_input)
             continue;
 
           // The next opcode is RE_OPCODE_LITERAL, but the literal doesn't

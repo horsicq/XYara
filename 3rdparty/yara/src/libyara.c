@@ -52,6 +52,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 YR_THREAD_STORAGE_KEY yr_yyfatal_trampoline_tls;
 YR_THREAD_STORAGE_KEY yr_trycatch_trampoline_tls;
 
+#if !(_WIN32 || __CYGWIN__)
+
+#include <pthread.h>
+#include <signal.h>
+
+struct sigaction old_sigsegv_exception_handler;
+struct sigaction old_sigbus_exception_handler;
+int exception_handler_usecount = 0;
+pthread_mutex_t exception_handler_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 static int init_count = 0;
 
 static struct yr_config_var
@@ -154,7 +165,6 @@ char *yr_debug_error_as_string(int error)
   case ERROR_WRONG_TYPE                    : s = "ERROR_WRONG_TYPE"                    ; break;
   case ERROR_EXEC_STACK_OVERFLOW           : s = "ERROR_EXEC_STACK_OVERFLOW"           ; break;
   case ERROR_SCAN_TIMEOUT                  : s = "ERROR_SCAN_TIMEOUT"                  ; break;
-  case ERROR_TOO_MANY_SCAN_THREADS         : s = "ERROR_TOO_MANY_SCAN_THREADS"         ; break;
   case ERROR_CALLBACK_ERROR                : s = "ERROR_CALLBACK_ERROR"                ; break;
   case ERROR_INVALID_ARGUMENT              : s = "ERROR_INVALID_ARGUMENT"              ; break;
   case ERROR_TOO_MANY_MATCHES              : s = "ERROR_TOO_MANY_MATCHES"              ; break;

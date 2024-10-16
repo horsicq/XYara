@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(USE_LINUX_PROC)
 
+#define _FILE_OFFSET_BITS 64
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -55,7 +57,7 @@ typedef struct _YR_PROC_INFO
   uint64_t map_offset;
   uint64_t next_block_end;
   int page_size;
-  char map_path[PATH_MAX];
+  char map_path[YR_MAX_PATH];
   uint64_t map_dmaj;
   uint64_t map_dmin;
   uint64_t map_ino;
@@ -97,7 +99,7 @@ int _yr_process_attach(int pid, YR_PROC_ITERATOR_CTX* context)
   snprintf(buffer, sizeof(buffer), "/proc/%u/pagemap", pid);
   proc_info->pagemap_fd = open(buffer, O_RDONLY);
 
-  if (proc_info->mem_fd == -1)
+  if (proc_info->pagemap_fd == -1)
     goto err;
 
   context->proc_info = proc_info;
@@ -164,16 +166,10 @@ YR_API const uint8_t* yr_process_fetch_memory_block_data(YR_MEMORY_BLOCK* block)
       !(proc_info->map_dmaj == 0 && proc_info->map_dmin == 0))
   {
     struct stat st;
-    fd = open(proc_info->map_path, O_RDONLY);
 
-    if (fd < 0)
-    {
-      fd = -1;  // File does not exist.
-    }
-    else if (fstat(fd, &st) < 0)
+    if (stat(proc_info->map_path, &st) < 0)
     {
       // Why should stat fail after file open? Treat like missing.
-      close(fd);
       fd = -1;
     }
     else if (
@@ -182,21 +178,35 @@ YR_API const uint8_t* yr_process_fetch_memory_block_data(YR_MEMORY_BLOCK* block)
         (st.st_ino != proc_info->map_ino))
     {
       // Wrong file, may have been replaced. Treat like missing.
-      close(fd);
       fd = -1;
     }
     else if (st.st_size < proc_info->map_offset + block->size)
     {
       // Mapping extends past end of file. Treat like missing.
-      close(fd);
       fd = -1;
     }
     else if ((st.st_mode & S_IFMT) != S_IFREG)
     {
       // Correct filesystem object, but not a regular file. Treat like
       // uninitialized mapping.
-      close(fd);
       fd = -2;
+    }
+    else
+    {
+      fd = open(proc_info->map_path, O_RDONLY);
+      // Double-check against race conditions
+      struct stat st2;
+      if (fstat(fd, &st2) < 0)
+      {
+        close(fd);
+        fd = -1;
+      }
+      else if ((st.st_dev != st2.st_dev) || (st.st_ino != st2.st_ino))
+      {
+        // File has been changed from under us, so ignore.
+        close(fd);
+        fd = -1;
+      }
     }
   }
 
@@ -210,8 +220,16 @@ YR_API const uint8_t* yr_process_fetch_memory_block_data(YR_MEMORY_BLOCK* block)
         fd,
         proc_info->map_offset);
     close(fd);
+    if (context->buffer == MAP_FAILED)
+    {
+      // Notify the code below that we couldn't read from the file
+      // fallback to pread() from the process
+      fd = -1;
+    }
+    context->buffer_size = block->size;
   }
-  else
+
+  if (fd < 0)
   {
     context->buffer = mmap(
         NULL,
@@ -220,16 +238,13 @@ YR_API const uint8_t* yr_process_fetch_memory_block_data(YR_MEMORY_BLOCK* block)
         MAP_PRIVATE | MAP_ANONYMOUS,
         -1,
         0);
-  }
-
-  if (context->buffer != NULL)
-  {
+    if (context->buffer == MAP_FAILED)
+    {
+      context->buffer = NULL;
+      context->buffer_size = 0;
+      goto _exit;
+    }
     context->buffer_size = block->size;
-  }
-  else
-  {
-    context->buffer_size = 0;
-    goto _exit;
   }
 
   // If mapping can't be accessed through the filesystem, read everything from
@@ -312,7 +327,7 @@ YR_API YR_MEMORY_BLOCK* yr_process_get_next_memory_block(
   YR_PROC_ITERATOR_CTX* context = (YR_PROC_ITERATOR_CTX*) iterator->context;
   YR_PROC_INFO* proc_info = (YR_PROC_INFO*) context->proc_info;
 
-  char buffer[PATH_MAX];
+  char buffer[YR_MAX_PATH];
   char perm[5];
 
   uint64_t begin, end;
