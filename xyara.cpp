@@ -307,7 +307,7 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         // qDebug("CALLBACK_MSG_SCAN_FINISHED");
     }
 
-    if (_pXYara->g_pPdStruct->bIsStop) {
+    if (XBinary::isPdStructStopped(_pXYara->g_pPdStruct)) {
         nResult = CALLBACK_ABORT;
     }
 
