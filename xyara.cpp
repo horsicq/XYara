@@ -76,13 +76,6 @@ bool XYara::_handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileNam
 
 XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFileNameOrDirectory, XBinary::PDSTRUCT *pPdStruct)
 {
-    XBinary::PDSTRUCT pdStructEmpty = {};
-
-    if (!pPdStruct) {
-        pdStructEmpty = XBinary::createPdStruct();
-        pPdStruct = &pdStructEmpty;
-    }
-
     QElapsedTimer scanTimer;
     scanTimer.start();
 
