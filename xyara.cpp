@@ -20,7 +20,7 @@
  */
 #include "xyara.h"
 
-XYara::XYara(QObject *pParent) : QObject(pParent)
+XYara::XYara(QObject *pParent) : XThreadObject(pParent)
 {
     g_pdStructEmpty = XBinary::createPdStruct();
     g_pPdStruct = &g_pdStructEmpty;

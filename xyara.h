@@ -23,6 +23,7 @@
 #include "yara.h"
 #include "xbinary.h"
 #include <QThread>
+#include "xthreadobject.h"
 // #include <crtdbg.h>
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -34,8 +35,9 @@
 #include <unistd.h>
 #endif
 
-class XYara : public QObject {
+class XYara : public XThreadObject {
     Q_OBJECT
+
 public:
     struct SCAN_MATCH {
         QString sName;
@@ -83,20 +85,12 @@ public:
     SCAN_RESULT getScanResult();
     static SCAN_STRUCT getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID);
     QString getFileNameByRulesFileName(const QString &sRulesFileName);
-
-public slots:
-    void process();
+    virtual void process();
 
 private:
     bool _handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, const QString &sInfo);
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
-
-signals:
-    void errorMessage(const QString &sErrorMessage);
-    void warningMessage(const QString &sWarningMessage);
-    void infoMessage(const QString &sInfoMessage);
-    void completed(qint64 nElapsed);
 
 private:
     XBinary::PDSTRUCT *g_pPdStruct;
