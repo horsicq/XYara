@@ -80,8 +80,7 @@ public:
 
     SCAN_RESULT scanFile(const QString &sFileName, const QString &sFileNameOrDirectory, XBinary::PDSTRUCT *pPdStruct);
     // TODO scan device!
-    void setPdStruct(XBinary::PDSTRUCT *pPdStruct);
-    void setData(const QString &sFileName, const QString &sRulesPath);
+    void setData(const QString &sFileName, const QString &sRulesPath, XBinary::PDSTRUCT *pPdStruct);
     SCAN_RESULT getScanResult();
     static SCAN_STRUCT getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID);
     QString getFileNameByRulesFileName(const QString &sRulesFileName);

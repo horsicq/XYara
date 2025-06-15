@@ -160,15 +160,11 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     return g_scanResult;
 }
 
-void XYara::setPdStruct(XBinary::PDSTRUCT *pPdStruct)
-{
-    g_pPdStruct = pPdStruct;
-}
-
-void XYara::setData(const QString &sFileName, const QString &sRulesPath)
+void XYara::setData(const QString &sFileName, const QString &sRulesPath, XBinary::PDSTRUCT *pPdStruct)
 {
     g_sFileName = sFileName;
     g_sRulesPath = sRulesPath;
+    g_pPdStruct = pPdStruct;
 }
 
 XYara::SCAN_RESULT XYara::getScanResult()
