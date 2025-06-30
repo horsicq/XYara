@@ -195,17 +195,12 @@ QString XYara::getFileNameByRulesFileName(const QString &sRulesFileName)
 
 void XYara::process()
 {
-    QElapsedTimer scanTimer;
-    scanTimer.start();
-
     int nFreeIndex = XBinary::getFreeIndex(g_pPdStruct);
     XBinary::setPdStructInit(g_pPdStruct, nFreeIndex, 0);
 
     scanFile(g_sFileName, g_sRulesPath, g_pPdStruct);
 
     XBinary::setPdStructFinished(g_pPdStruct, nFreeIndex);
-
-    emit completed(scanTimer.elapsed());
 }
 
 void XYara::_callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data)
