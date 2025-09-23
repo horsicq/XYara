@@ -92,7 +92,7 @@ private:
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
 
 private:
-    XBinary::PDSTRUCT *g_pPdStruct;
+    XBinary::PDSTRUCT *m_pPdStruct;
     XBinary::PDSTRUCT g_pdStructEmpty;
     qint32 g_nFreeIndex;
     QString g_sFileName;

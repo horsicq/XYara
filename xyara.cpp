@@ -23,7 +23,7 @@
 XYara::XYara(QObject *pParent) : XThreadObject(pParent)
 {
     g_pdStructEmpty = XBinary::createPdStruct();
-    g_pPdStruct = &g_pdStructEmpty;
+    m_pPdStruct = &g_pdStructEmpty;
     g_scanResult = {};
     g_nFreeIndex = -1;
 }
@@ -79,8 +79,8 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     QElapsedTimer scanTimer;
     scanTimer.start();
 
-    g_nFreeIndex = XBinary::getFreeIndex(g_pPdStruct);
-    XBinary::setPdStructInit(g_pPdStruct, g_nFreeIndex, 0);
+    g_nFreeIndex = XBinary::getFreeIndex(m_pPdStruct);
+    XBinary::setPdStructInit(m_pPdStruct, g_nFreeIndex, 0);
 
     YR_RULES *pRules = nullptr;
     YR_COMPILER *pYrCompiler = nullptr;
@@ -155,7 +155,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     g_scanResult.sFileName = _sFileName;
     g_scanResult.nScanTime = scanTimer.elapsed();
 
-    XBinary::setPdStructFinished(g_pPdStruct, g_nFreeIndex);
+    XBinary::setPdStructFinished(m_pPdStruct, g_nFreeIndex);
 
     return g_scanResult;
 }
@@ -164,7 +164,7 @@ void XYara::setData(const QString &sFileName, const QString &sRulesPath, XBinary
 {
     g_sFileName = sFileName;
     g_sRulesPath = sRulesPath;
-    g_pPdStruct = pPdStruct;
+    m_pPdStruct = pPdStruct;
 }
 
 XYara::SCAN_RESULT XYara::getScanResult()
@@ -195,12 +195,12 @@ QString XYara::getFileNameByRulesFileName(const QString &sRulesFileName)
 
 void XYara::process()
 {
-    int nFreeIndex = XBinary::getFreeIndex(g_pPdStruct);
-    XBinary::setPdStructInit(g_pPdStruct, nFreeIndex, 0);
+    int nFreeIndex = XBinary::getFreeIndex(m_pPdStruct);
+    XBinary::setPdStructInit(m_pPdStruct, nFreeIndex, 0);
 
-    scanFile(g_sFileName, g_sRulesPath, g_pPdStruct);
+    scanFile(g_sFileName, g_sRulesPath, m_pPdStruct);
 
-    XBinary::setPdStructFinished(g_pPdStruct, nFreeIndex);
+    XBinary::setPdStructFinished(m_pPdStruct, nFreeIndex);
 }
 
 void XYara::_callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data)
@@ -264,14 +264,14 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
 
         _pXYara->g_scanResult.listRecords.append(scanStruct);
 
-        XBinary::setPdStructCurrentIncrement(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex);
-        XBinary::setPdStructStatus(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex, pYrRule->identifier);
+        XBinary::setPdStructCurrentIncrement(_pXYara->m_pPdStruct, _pXYara->g_nFreeIndex);
+        XBinary::setPdStructStatus(_pXYara->m_pPdStruct, _pXYara->g_nFreeIndex, pYrRule->identifier);
     } else if (message == CALLBACK_MSG_RULE_NOT_MATCHING) {
         YR_RULE *pYrRule = (YR_RULE *)message_data;
         //        YR_OBJECT_STRUCTURE *pYrStruncture = (YR_OBJECT_STRUCTURE *)message_data;
         //        qDebug("CALLBACK_MSG_RULE_NOT_MATCHING");
-        XBinary::setPdStructCurrentIncrement(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex);
-        XBinary::setPdStructStatus(_pXYara->g_pPdStruct, _pXYara->g_nFreeIndex, pYrRule->identifier);
+        XBinary::setPdStructCurrentIncrement(_pXYara->m_pPdStruct, _pXYara->g_nFreeIndex);
+        XBinary::setPdStructStatus(_pXYara->m_pPdStruct, _pXYara->g_nFreeIndex, pYrRule->identifier);
     } else if (message == CALLBACK_MSG_TOO_MANY_MATCHES) {
         //        YR_STRING *pYrString = (YR_STRING *)message_data;
         // TODO warning
@@ -291,7 +291,7 @@ int XYara::_callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_da
         // qDebug("CALLBACK_MSG_SCAN_FINISHED");
     }
 
-    if (XBinary::isPdStructStopped(_pXYara->g_pPdStruct)) {
+    if (XBinary::isPdStructStopped(_pXYara->m_pPdStruct)) {
         nResult = CALLBACK_ABORT;
     }
 
