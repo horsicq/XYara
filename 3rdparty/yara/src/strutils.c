@@ -32,6 +32,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <yara/mem.h>
 #include <yara/strutils.h>
 
+// Compatibility for va_copy in older MSVC or 32-bit builds
+#if defined(_MSC_VER) && !defined(va_copy)
+#define va_copy(dest, src) ((dest) = (src))
+#endif
+
 uint64_t xtoi(const char* hexstr)
 {
   size_t i;

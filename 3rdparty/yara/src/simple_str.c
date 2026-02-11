@@ -33,6 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <yara/simple_str.h>
 #include <yara/types.h>
 
+// Compatibility for va_copy in older MSVC or 32-bit builds
+#if defined(_MSC_VER) && !defined(va_copy)
+#define va_copy(dest, src) ((dest) = (src))
+#endif
+
 static bool sstr_vappendf(SIMPLE_STR* ss, const char* fmt, va_list va)
 {
   // Create copy because list will get consumed when getting the final length
