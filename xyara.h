@@ -22,6 +22,7 @@
 #define XYARA_H
 #include "yara.h"
 #include "xbinary.h"
+#include "xoptions.h"
 #include <QThread>
 #include "xthreadobject.h"
 // #include <crtdbg.h>

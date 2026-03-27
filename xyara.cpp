@@ -91,7 +91,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
 
     //    yr_compiler_create(&g_pYrCompiler);
     //    yr_compiler_set_callback(g_pYrCompiler, &XYara::_callbackCheckRules, this);
-    QString _sFileNameOrDirectory = XBinary::convertPathName(sFileNameOrDirectory);
+    QString _sFileNameOrDirectory = XOptions::convertPathName(sFileNameOrDirectory);
 
     if (QFileInfo(_sFileNameOrDirectory).isDir()) {
         QDir directory(_sFileNameOrDirectory);
