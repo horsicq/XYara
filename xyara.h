@@ -23,7 +23,6 @@
 #include "yara.h"
 #include "xbinary.h"
 #include "xoptions.h"
-#include <QThread>
 #include "xthreadobject.h"
 // #include <crtdbg.h>
 
@@ -42,8 +41,8 @@ class XYara : public XThreadObject {
 public:
     struct SCAN_MATCH {
         QString sName;
-        qint64 nOffset;
-        qint64 nSize;
+        qint64 nOffset = 0;
+        qint64 nSize = 0;
     };
 
     struct SCAN_STRUCT {
@@ -62,11 +61,11 @@ public:
     struct DEBUG_RECORD {
         QString sRule;
         QString sRulesFile;
-        qint64 nElapsedTime;
+        qint64 nElapsedTime = 0;
     };
 
     struct SCAN_RESULT {
-        qint64 nScanTime;
+        qint64 nScanTime = 0;
         QString sFileName;
         QList<SCAN_STRUCT> listRecords;
         QList<ERROR_RECORD> listErrors;
@@ -74,7 +73,7 @@ public:
     };
 
     explicit XYara(QObject *pParent = nullptr);
-    ~XYara();
+    ~XYara() override = default;
 
     static void initialize();
     static void finalize();
@@ -82,24 +81,29 @@ public:
     SCAN_RESULT scanFile(const QString &sFileName, const QString &sFileNameOrDirectory, XBinary::PDSTRUCT *pPdStruct);
     // TODO scan device!
     void setData(const QString &sFileName, const QString &sRulesPath, XBinary::PDSTRUCT *pPdStruct);
-    SCAN_RESULT getScanResult();
-    static SCAN_STRUCT getScanStructByUUID(SCAN_RESULT *pScanResult, const QString &sUUID);
-    QString getFileNameByRulesFileName(const QString &sRulesFileName);
-    virtual void process();
+    SCAN_RESULT getScanResult() const;
+    static SCAN_STRUCT getScanStructByUUID(const SCAN_RESULT *pScanResult, const QString &sUUID);
+    QString getFileNameByRulesFileName(const QString &sRulesFileName) const;
+    void process() override;
 
 private:
-    bool _handleRulesFile(YR_COMPILER **ppYrCompiler, const QString &sFileName, const QString &sInfo);
+    bool _handleRulesFile(YR_COMPILER *pYrCompiler, const QString &sFileName, const QString &sInfo);
+    void _appendError(const QString &sRulesFile, const QString &sErrorString);
+    void _reportError(const QString &sRulesFile, const QString &sErrorString);
+    void _resetScanResult(const QString &sFileName);
+    void _setProgressTotal(qint32 nTotal);
+    void _updateProgress(const QString &sStatusText);
     static void _callbackCheckRules(int error_level, const char *file_name, int line_number, const YR_RULE *rule, const char *message, void *user_data);
     static int _callbackScan(YR_SCAN_CONTEXT *context, int message, void *message_data, void *user_data);
 
 private:
-    XBinary::PDSTRUCT *m_pPdStruct;
-    XBinary::PDSTRUCT g_pdStructEmpty;
-    qint32 g_nFreeIndex;
-    QString g_sFileName;
-    QString g_sRulesPath;
-    SCAN_RESULT g_scanResult;
-    QMap<QString, QString> g_mapFileNames;
+    XBinary::PDSTRUCT *m_pPdStruct = nullptr;
+    XBinary::PDSTRUCT m_emptyPdStruct = {};
+    qint32 m_nFreeIndex = -1;
+    QString m_sFileName;
+    QString m_sRulesPath;
+    SCAN_RESULT m_scanResult = {};
+    QMap<QString, QString> m_mapFileNames;
 };
 
 #endif  // XYARA_H
