@@ -1,0 +1,44 @@
+name: DB Release
+
+on:
+    push:
+        branches: ["master"]
+    workflow_dispatch:
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Clone XYara
+              run: |
+                  git clone https://github.com/horsicq/XYara XYara
+
+            - name: Create yara_rules.zip
+              if: ${{ hashFiles('XYara/yara_rules/info.ini') != '' }}
+              run: |
+                  cd XYara
+                  zip -r ../yara_rules.zip yara_rules
+                  cd ..
+
+            - name: Read yara_rules/info.ini
+              if: ${{ hashFiles('XYara/yara_rules/info.ini') != '' }}
+              id: yara_rules_info
+              run: |
+                  YARA_RULES_INFO=$(cat XYara/yara_rules/info.ini)
+                  echo "YARA_RULES_INFO<<EOF" >> $GITHUB_OUTPUT
+                  echo "$YARA_RULES_INFO" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
+
+            - name: Update yara_rules release
+              if: ${{ hashFiles('XYara/yara_rules/info.ini') != '' }}
+              uses: softprops/action-gh-release@v3
+              with:
+                  files: yara_rules.zip
+                  name: "yara_rules"
+                  tag_name: yara_rules
+                  body: ${{ steps.yara_rules_info.outputs.YARA_RULES_INFO }}
+                  draft: false
+                  prerelease: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
