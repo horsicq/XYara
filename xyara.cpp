@@ -68,7 +68,8 @@ class ScanFileHandle {
 public:
     explicit ScanFileHandle(const QString &sFileName)
     {
-        hFile = CreateFileW(reinterpret_cast<LPCWSTR>(sFileName.utf16()), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        hFile = CreateFileW(reinterpret_cast<LPCWSTR>(sFileName.utf16()), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                            nullptr);
     }
 
     ~ScanFileHandle()
