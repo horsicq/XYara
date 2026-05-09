@@ -272,11 +272,9 @@ XYara::SCAN_STRUCT XYara::getScanStructByUUID(const SCAN_RESULT *pScanResult, co
         return result;
     }
 
-    qint32 nNumberOfRecords = pScanResult->listRecords.count();
-
-    for (qint32 i = 0; i < nNumberOfRecords; i++) {
-        if (pScanResult->listRecords.at(i).sUUID == sUUID) {
-            result = pScanResult->listRecords.at(i);
+    for (const SCAN_STRUCT &ss : pScanResult->listRecords) {
+        if (ss.sUUID == sUUID) {
+            result = ss;
             break;
         }
     }
