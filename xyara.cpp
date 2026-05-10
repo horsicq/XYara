@@ -246,7 +246,7 @@ XYara::SCAN_RESULT XYara::scanFile(const QString &sFileName, const QString &sFil
     const int nResult = yr_rules_scan_fd(rules.pRules, fileHandle.handle(), YARA_SCAN_FLAGS, &XYara::_callbackScan, this, 0);
 
     if ((nResult != ERROR_SUCCESS) && !((nResult == ERROR_CALLBACK_ERROR) && XBinary::isPdStructStopped(m_pPdStruct))) {
-        _reportError(sScanFileName, QString("%1: %2").arg(tr("YARA scan failed"), QString::number(nResult)));
+        _reportError(sScanFileName, QString("%1: %2").arg(tr("YARA scan failed")).arg(QString::number(nResult)));
     }
 
     return finalizeScan();
@@ -312,7 +312,7 @@ void XYara::_reportError(const QString &sRulesFile, const QString &sErrorString)
     if (sRulesFile.isEmpty()) {
         emit errorMessage(sErrorString);
     } else {
-        emit errorMessage(QString("%1: %2").arg(sRulesFile, sErrorString));
+        emit errorMessage(QString("%1: %2").arg(sRulesFile).arg(sErrorString));
     }
 }
 
@@ -354,10 +354,10 @@ void XYara::_callbackCheckRules(int error_level, const char *file_name, int line
 
     const QString sFileName = yaraString(file_name);
     const QString sMessageText = yaraString(message);
-    const QString sMessage = QString("%1: [%2] %3").arg(sFileName, QString::number(line_number), sMessageText);
+    const QString sMessage = QString("%1: [%2] %3").arg(sFileName).arg(QString::number(line_number)).arg(sMessageText);
 
     if (error_level == YARA_ERROR_LEVEL_ERROR) {
-        pXYara->_reportError(sFileName, QString("[%1] %2").arg(QString::number(line_number), sMessageText));
+        pXYara->_reportError(sFileName, QString("[%1] %2").arg(QString::number(line_number)).arg(sMessageText));
     } else if (error_level == YARA_ERROR_LEVEL_WARNING) {
         emit pXYara->warningMessage(sMessage);
     }
